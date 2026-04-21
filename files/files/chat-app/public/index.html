@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>وَصْل — دردشة عربية فورية</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="dark-mode">
+
+<!-- ══════════════════════════════════════ -->
+<!-- TOP NAV (shown on auth/lobby screens) -->
+<!-- ══════════════════════════════════════ -->
+<nav class="main-top-nav" id="main-top-nav">
+  <a href="/" class="nav-brand-link">🔗 وَصْل</a>
+  <div class="nav-top-links">
+    <a href="/" class="nav-top-link active">🏠 الرئيسية</a>
+    <a href="/blog.html" class="nav-top-link">📝 المدونة</a>
+    <a href="/about.html" class="nav-top-link">👥 من نحن</a>
+    <a href="/contact.html" class="nav-top-link">📩 اتصل بنا</a>
+    <a href="/privacy.html" class="nav-top-link">🔒 الخصوصية</a>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════ -->
+<!-- AUTH SCREEN -->
+<!-- ══════════════════════════════════════ -->
+<div id="auth-screen" class="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="logo-icon">🔗</div>
+      <h1 class="logo-title">وَصْل</h1>
+      <p class="logo-sub">دردشة عربية • فورية • آمنة</p>
+    </div>
+
+    <!-- Tabs -->
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login" onclick="switchTab('login')">تسجيل الدخول</button>
+      <button class="auth-tab" id="tab-register" onclick="switchTab('register')">حساب جديد</button>
+    </div>
+
+    <!-- Login Form -->
+    <div id="form-login" class="login-form">
+      <input type="text" id="login-username" class="login-input" placeholder="اسم المستخدم" maxlength="20" autocomplete="off" />
+      <input type="password" id="login-password" class="login-input" placeholder="كلمة المرور" maxlength="40" />
+      <div id="login-error" class="form-error hidden"></div>
+      <button id="login-btn" class="join-btn" onclick="doLogin()">
+        <span>دخول</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </button>
+      <p class="auth-hint">حساب تجريبي: <strong>admin</strong> / <strong>admin123</strong></p>
+    </div>
+
+    <!-- Register Form -->
+    <div id="form-register" class="login-form hidden">
+      <input type="text" id="reg-username" class="login-input" placeholder="اسم المستخدم (2-20 حرف)" maxlength="20" autocomplete="off" />
+      <input type="password" id="reg-password" class="login-input" placeholder="كلمة المرور (4 أحرف على الأقل)" maxlength="40" />
+      <div id="reg-error" class="form-error hidden"></div>
+      <button class="join-btn" onclick="doRegister()">
+        <span>إنشاء حساب</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!-- ROOMS LOBBY -->
+<!-- ══════════════════════════════════════ -->
+<div id="lobby-screen" class="lobby-screen hidden">
+  <div class="lobby-container">
+
+    <div class="lobby-header">
+      <div class="lobby-brand">
+        <span>🔗</span>
+        <span class="logo-title" style="font-size:22px">وَصْل</span>
+      </div>
+      <div class="lobby-user-info">
+        <div class="lobby-avatar" id="lobby-avatar">؟</div>
+        <span id="lobby-username-display"></span>
+        <button id="theme-toggle-lobby" class="theme-toggle" title="تبديل الوضع"><span id="theme-icon-lobby">☀️</span></button>
+        <button class="logout-btn" onclick="doLogout()" title="خروج">⏻</button>
+      </div>
+    </div>
+
+    <div class="lobby-body">
+
+      <!-- Left: Create / Join -->
+      <div class="lobby-panel">
+
+        <!-- Create Room -->
+        <div class="panel-card">
+          <h3 class="panel-title">➕ إنشاء غرفة جديدة</h3>
+          <input type="text" id="new-room-name" class="login-input" placeholder="اسم الغرفة..." maxlength="30" />
+          <label class="checkbox-label">
+            <input type="checkbox" id="new-room-persistent" />
+            <span class="checkbox-custom"></span>
+            حفظ الغرفة بعد خروج الجميع
+          </label>
+          <div id="create-room-error" class="form-error hidden"></div>
+          <button class="join-btn" onclick="createRoom()">إنشاء الغرفة</button>
+        </div>
+
+        <!-- Join by ID -->
+        <div class="panel-card">
+          <h3 class="panel-title">🔑 دخول غرفة برمز</h3>
+          <input type="text" id="join-room-id" class="login-input" placeholder="أدخل رمز الغرفة..." maxlength="20" />
+          <div id="join-room-error" class="form-error hidden"></div>
+          <button class="join-btn secondary-btn" onclick="joinRoomById()">الدخول</button>
+        </div>
+      </div>
+
+      <!-- Right: Rooms Lists -->
+      <div class="lobby-panel">
+
+        <!-- My Rooms -->
+        <div class="panel-card">
+          <h3 class="panel-title">📌 غرفي المحفوظة</h3>
+          <div id="my-rooms-list" class="rooms-list">
+            <div class="rooms-empty">لم تدخل أي غرفة بعد</div>
+          </div>
+        </div>
+
+        <!-- All Rooms -->
+        <div class="panel-card">
+          <h3 class="panel-title">🌐 الغرف المتاحة</h3>
+          <div id="all-rooms-list" class="rooms-list">
+            <div class="rooms-empty">لا توجد غرف حالياً</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!-- CHAT SCREEN -->
+<!-- ══════════════════════════════════════ -->
+<div id="chat-screen" class="chat-screen hidden">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="app-brand">
+        <span class="brand-icon">🔗</span>
+        <span class="brand-name">وَصْل</span>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button id="theme-toggle" class="theme-toggle" title="تبديل الوضع"><span id="theme-icon">☀️</span></button>
+        <button class="theme-toggle" onclick="backToLobby()" title="العودة للغرف">🏠</button>
+      </div>
+    </div>
+
+    <!-- Current Room -->
+    <div class="sidebar-room">
+      <div class="room-icon" id="sidebar-room-icon">💬</div>
+      <div class="room-info">
+        <div class="room-name" id="sidebar-room-name">—</div>
+        <div class="room-status" id="room-status">جاري الاتصال...</div>
+      </div>
+    </div>
+
+    <!-- Room ID copy -->
+    <div class="room-id-box">
+      <span class="room-id-label">رمز الغرفة:</span>
+      <span class="room-id-val" id="room-id-display">—</span>
+      <button class="copy-btn" onclick="copyRoomId()" title="نسخ">📋</button>
+    </div>
+
+    <!-- Users in room -->
+    <div class="sidebar-users">
+      <div class="users-label">في الغرفة</div>
+      <div id="users-list" class="users-list"></div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="my-profile">
+        <div class="my-avatar" id="my-avatar">?</div>
+        <div class="my-name" id="my-name-display">أنت</div>
+        <div class="online-dot"></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Chat Area -->
+  <main class="chat-main">
+
+    <header class="chat-header">
+      <div class="header-info">
+        <div class="header-icon">💬</div>
+        <div>
+          <div class="header-title" id="header-room-name">الغرفة</div>
+          <div class="header-subtitle" id="online-count">0 متصل</div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <div id="connection-badge" class="connection-badge offline">
+          <span class="badge-dot"></span>
+          <span class="badge-text">غير متصل</span>
+        </div>
+      </div>
+    </header>
+
+    <div id="messages" class="messages-area">
+      <div class="welcome-msg">
+        <div class="welcome-icon">🔗</div>
+        <p>مرحباً بك في وَصْل</p>
+        <small>ابدأ الدردشة الآن</small>
+      </div>
+    </div>
+
+    <div id="typing-indicator" class="typing-indicator hidden">
+      <div class="typing-bubble">
+        <span class="typing-name" id="typing-name"></span>
+        <span class="typing-dots"><span></span><span></span><span></span></span>
+      </div>
+    </div>
+
+    <div id="reply-preview" class="reply-preview hidden">
+      <div class="reply-content">
+        <span class="reply-label">↩ رد على:</span>
+        <span class="reply-text" id="reply-text-preview"></span>
+      </div>
+      <button id="cancel-reply" class="cancel-reply">✕</button>
+    </div>
+
+    <footer class="input-area">
+      <button id="emoji-btn" class="action-btn emoji-trigger" title="إيموجي">😊</button>
+      <label class="action-btn" for="file-upload" title="إرسال ملف أو صورة">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <input type="file" id="file-upload" accept="image/*,.pdf,.doc,.docx" class="hidden-input" />
+      </label>
+
+      <div id="attachment-preview" class="attachment-preview hidden">
+        <img id="preview-img" src="" alt="preview" class="hidden" />
+        <div id="file-preview-info" class="file-preview-info hidden">
+          <span class="file-icon">📄</span>
+          <span id="file-preview-name" class="file-preview-name"></span>
+        </div>
+        <button id="remove-attachment" class="remove-img">✕</button>
+      </div>
+
+      <div class="text-input-wrapper">
+        <textarea id="message-input" class="message-input" placeholder="اكتب رسالتك..." rows="1" maxlength="1000"></textarea>
+      </div>
+
+      <button id="send-btn" class="send-btn" title="إرسال">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+    </footer>
+
+    <div id="emoji-picker" class="emoji-picker hidden">
+      <div class="emoji-search-wrap">
+        <input type="text" id="emoji-search" class="emoji-search" placeholder="ابحث عن إيموجي..." />
+      </div>
+      <div class="emoji-categories">
+        <button class="emoji-cat active" data-cat="smileys">😊</button>
+        <button class="emoji-cat" data-cat="gestures">👋</button>
+        <button class="emoji-cat" data-cat="hearts">❤️</button>
+        <button class="emoji-cat" data-cat="objects">🎉</button>
+        <button class="emoji-cat" data-cat="nature">🌿</button>
+        <button class="emoji-cat" data-cat="food">🍕</button>
+      </div>
+      <div class="emoji-grid" id="emoji-grid"></div>
+    </div>
+  </main>
+</div>
+
+<!-- Image Modal -->
+<div id="img-modal" class="img-modal hidden">
+  <div class="modal-backdrop" id="modal-backdrop"></div>
+  <div class="modal-content">
+    <button class="modal-close" id="modal-close">✕</button>
+    <img id="modal-img" src="" alt="full image" />
+  </div>
+</div>
+
+<!-- Context Menu -->
+<div id="context-menu" class="context-menu hidden">
+  <button class="ctx-item" id="ctx-reply">↩ رد</button>
+  <button class="ctx-item" id="ctx-react">❤️ تفاعل</button>
+  <button class="ctx-item ctx-danger" id="ctx-delete">🗑️ حذف</button>
+</div>
+
+<!-- Reaction Picker -->
+<div id="reaction-picker" class="reaction-picker hidden">
+  <span class="react-emoji" data-emoji="❤️">❤️</span>
+  <span class="react-emoji" data-emoji="😂">😂</span>
+  <span class="react-emoji" data-emoji="😮">😮</span>
+  <span class="react-emoji" data-emoji="😢">😢</span>
+  <span class="react-emoji" data-emoji="👍">👍</span>
+  <span class="react-emoji" data-emoji="🔥">🔥</span>
+</div>
+
+<!-- Footer -->
+<footer class="app-footer" id="app-footer">
+  <div class="app-footer-inner">
+    <div class="footer-links-row">
+      <a href="/">🏠 الرئيسية</a>
+      <a href="/blog.html">📝 المدونة</a>
+      <a href="/about.html">👥 من نحن</a>
+      <a href="/contact.html">📩 اتصل بنا</a>
+      <a href="/privacy.html">🔒 سياسة الخصوصية</a>
+    </div>
+    <div class="footer-copy">
+      <span>© 2025 وَصْل — جميع الحقوق محفوظة</span>
+      <span class="footer-dev">by omar benbouzid dev</span>
+    </div>
+  </div>
+</footer>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  // Hide top nav when in chat screen
+  const _topNav = document.getElementById('main-top-nav');
+  const _chatScreen = document.getElementById('chat-screen');
+  const _observer = new MutationObserver(() => {
+    if (_chatScreen && !_chatScreen.classList.contains('hidden')) {
+      if (_topNav) _topNav.style.display = 'none';
+    } else {
+      if (_topNav) _topNav.style.display = '';
+    }
+  });
+  if (_chatScreen) _observer.observe(_chatScreen, { attributes: true, attributeFilter: ['class'] });
+</script>
+<script src="script.js"></script>
+</body>
+</html>

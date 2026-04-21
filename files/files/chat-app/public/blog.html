@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>وَصْل — المدونة</title>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .page-wrapper { min-height: 100vh; background: var(--bg-base); color: var(--text-primary); }
+
+    .main-nav { background: var(--bg-sidebar); border-bottom: 1px solid var(--border); padding: 0 28px; display: flex; align-items: center; justify-content: space-between; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .nav-brand { display: flex; align-items: center; gap: 8px; text-decoration: none; color: var(--text-primary); font-size: 20px; font-weight: 700; }
+    .nav-links { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .nav-link { color: var(--text-secondary); text-decoration: none; font-size: 14px; padding: 6px 12px; border-radius: 8px; transition: all 0.2s; }
+    .nav-link:hover, .nav-link.active { background: var(--bg-hover); color: var(--accent); }
+    .nav-cta { background: var(--accent); color: #fff !important; border-radius: 8px; padding: 7px 16px !important; font-weight: 600; }
+
+    .blog-hero { text-align: center; padding: 80px 20px 40px; background: radial-gradient(ellipse 80% 50% at 50% -10%, #1d4ed820, transparent), var(--bg-base); }
+    .blog-hero h1 { font-size: clamp(32px, 5vw, 52px); font-weight: 700; margin-bottom: 14px; }
+    .blog-hero p { font-size: 17px; color: var(--text-secondary); max-width: 560px; margin: 0 auto; line-height: 1.8; }
+
+    /* Filters */
+    .blog-filters { max-width: 1100px; margin: 0 auto; padding: 30px 20px 0; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .filter-btn { background: var(--bg-card); border: 1px solid var(--border); border-radius: 999px; color: var(--text-secondary); cursor: pointer; font-family: var(--font-arabic); font-size: 13px; font-weight: 500; padding: 7px 16px; transition: all 0.2s; }
+    .filter-btn:hover, .filter-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+    /* Blog Grid */
+    .blog-grid { max-width: 1100px; margin: 0 auto; padding: 30px 20px 80px; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px; }
+
+    .blog-card {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px;
+      overflow: hidden; cursor: pointer; transition: all 0.25s;
+      display: flex; flex-direction: column;
+    }
+    .blog-card:hover { border-color: var(--accent); transform: translateY(-4px); box-shadow: 0 20px 40px #00000060; }
+
+    .card-thumb {
+      height: 160px; display: flex; align-items: center; justify-content: center;
+      font-size: 60px; position: relative; overflow: hidden;
+    }
+    .card-thumb-tech     { background: linear-gradient(135deg, #0f2027, #203a43, #2c5364); }
+    .card-thumb-study    { background: linear-gradient(135deg, #0d1b2a, #1b2838, #2a4858); }
+    .card-thumb-work     { background: linear-gradient(135deg, #1a0533, #2d1b69, #11998e); }
+    .card-thumb-self     { background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); }
+    .card-thumb-internet { background: linear-gradient(135deg, #0a0a0a, #1a1a2e, #16213e); }
+
+    .card-body { padding: 20px; flex: 1; display: flex; flex-direction: column; }
+    .card-category { display: inline-flex; align-items: center; gap: 5px; background: var(--bg-hover); border-radius: 999px; font-size: 11px; font-weight: 600; padding: 3px 10px; color: var(--accent); margin-bottom: 12px; }
+    .card-title { font-size: 17px; font-weight: 700; line-height: 1.5; margin-bottom: 10px; }
+    .card-excerpt { font-size: 14px; color: var(--text-secondary); line-height: 1.7; flex: 1; }
+    .card-meta { display: flex; align-items: center; justify-content: space-between; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); font-size: 12px; color: var(--text-muted); }
+    .card-read-btn { background: var(--accent); color: #fff; border: none; border-radius: 8px; cursor: pointer; font-family: var(--font-arabic); font-size: 12px; font-weight: 600; padding: 6px 14px; transition: all 0.2s; }
+    .card-read-btn:hover { background: #2563eb; }
+
+    /* Article Modal */
+    .article-modal { display: none; position: fixed; inset: 0; z-index: 1000; }
+    .article-modal.open { display: flex; }
+    .article-backdrop { position: absolute; inset: 0; background: #000000cc; }
+    .article-panel {
+      position: relative; z-index: 1; background: var(--bg-card);
+      border-right: 1px solid var(--border); width: min(760px, 100%);
+      height: 100%; overflow-y: auto; margin-right: auto;
+      animation: slideIn 0.3s ease;
+    }
+    @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+    .article-close { position: sticky; top: 0; background: var(--bg-card); border-bottom: 1px solid var(--border); padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; z-index: 2; }
+    .article-close-btn { background: var(--bg-hover); border: 1px solid var(--border); border-radius: 8px; color: var(--text-secondary); cursor: pointer; font-size: 18px; padding: 4px 12px; transition: all 0.2s; }
+    .article-close-btn:hover { color: var(--danger); border-color: var(--danger); }
+    .article-body { padding: 32px; }
+    .article-cat { display: inline-flex; align-items: center; gap: 5px; background: var(--bg-hover); border-radius: 999px; font-size: 12px; font-weight: 600; padding: 4px 12px; color: var(--accent); margin-bottom: 16px; }
+    .article-title { font-size: clamp(22px, 4vw, 32px); font-weight: 700; line-height: 1.4; margin-bottom: 16px; }
+    .article-meta { display: flex; gap: 16px; font-size: 13px; color: var(--text-muted); margin-bottom: 28px; padding-bottom: 20px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+    .article-content p { font-size: 16px; color: var(--text-secondary); line-height: 1.9; margin-bottom: 18px; }
+    .article-content h3 { font-size: 18px; font-weight: 700; color: var(--text-primary); margin: 28px 0 12px; }
+    .article-content ul { margin: 12px 0 18px 20px; }
+    .article-content li { font-size: 15px; color: var(--text-secondary); line-height: 1.8; margin-bottom: 6px; }
+    .article-content .tip-box { background: #3b82f610; border: 1px solid #3b82f630; border-radius: 12px; padding: 16px 20px; margin: 20px 0; font-size: 14px; color: var(--text-secondary); line-height: 1.8; }
+
+    .main-footer { background: var(--bg-sidebar); border-top: 1px solid var(--border); padding: 40px 28px 24px; margin-top: 40px; }
+    .footer-grid { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 40px; margin-bottom: 32px; }
+    .footer-brand h3 { font-size: 20px; font-weight: 700; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+    .footer-brand p { font-size: 14px; color: var(--text-secondary); line-height: 1.7; }
+    .footer-col h4 { font-size: 14px; font-weight: 700; margin-bottom: 14px; }
+    .footer-col a { display: block; font-size: 14px; color: var(--text-secondary); text-decoration: none; margin-bottom: 8px; transition: color 0.2s; }
+    .footer-col a:hover { color: var(--accent); }
+    .footer-bottom { border-top: 1px solid var(--border); padding-top: 20px; display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: var(--text-muted); flex-wrap: wrap; gap: 10px; }
+
+    @media (max-width: 768px) { .nav-links { display: none; } .footer-grid { grid-template-columns: 1fr; } .blog-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body class="dark-mode">
+<div class="page-wrapper">
+
+  <nav class="main-nav">
+    <a href="/" class="nav-brand">🔗 وَصْل</a>
+    <div class="nav-links">
+      <a href="/" class="nav-link">🏠 الرئيسية</a>
+      <a href="/blog.html" class="nav-link active">📝 المدونة</a>
+      <a href="/" class="nav-link nav-cta">💬 الدردشة</a>
+      <a href="/about.html" class="nav-link">👥 من نحن</a>
+      <a href="/contact.html" class="nav-link">📩 اتصل بنا</a>
+    </div>
+  </nav>
+
+  <div class="blog-hero">
+    <h1>📝 المدونة</h1>
+    <p>مقالات مفيدة في التقنية والدراسة والعمل وتطوير الذات — بقلم فريق وَصْل</p>
+  </div>
+
+  <div class="blog-filters">
+    <button class="filter-btn active" onclick="filterPosts('all', this)">الكل</button>
+    <button class="filter-btn" onclick="filterPosts('tech', this)">💻 التقنية</button>
+    <button class="filter-btn" onclick="filterPosts('study', this)">📚 الدراسة</button>
+    <button class="filter-btn" onclick="filterPosts('work', this)">💼 العمل</button>
+    <button class="filter-btn" onclick="filterPosts('self', this)">🌱 تطوير الذات</button>
+    <button class="filter-btn" onclick="filterPosts('internet', this)">🌐 الإنترنت</button>
+  </div>
+
+  <div class="blog-grid" id="blog-grid"></div>
+
+  <!-- Article Modal -->
+  <div class="article-modal" id="article-modal">
+    <div class="article-backdrop" onclick="closeArticle()"></div>
+    <div class="article-panel">
+      <div class="article-close">
+        <span style="font-size:14px;font-weight:600;color:var(--text-secondary)">المدونة</span>
+        <button class="article-close-btn" onclick="closeArticle()">✕</button>
+      </div>
+      <div class="article-body" id="article-body"></div>
+    </div>
+  </div>
+
+  <footer class="main-footer">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <h3>🔗 وَصْل</h3>
+        <p>منصة دردشة عربية فورية تجمع الناس وتقرّب المسافات.</p>
+      </div>
+      <div class="footer-col">
+        <h4>الموقع</h4>
+        <a href="/">الرئيسية</a>
+        <a href="/blog.html">المدونة</a>
+        <a href="/about.html">من نحن</a>
+        <a href="/contact.html">اتصل بنا</a>
+      </div>
+      <div class="footer-col">
+        <h4>قانوني</h4>
+        <a href="/privacy.html">سياسة الخصوصية</a>
+        <a href="/contact.html">الدعم الفني</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2025 وَصْل — جميع الحقوق محفوظة</span>
+      <span>by omar benbouzid dev</span>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+const posts = [
+  {
+    id: 1,
+    cat: 'tech',
+    catLabel: '💻 التقنية',
+    thumb: 'card-thumb-tech',
+    emoji: '🔌',
+    title: 'WebSocket مقابل HTTP: متى تستخدم كلاً منهما؟',
+    excerpt: 'فهم الفرق بين البروتوكولين يساعدك في بناء تطبيقات أكثر كفاءة وسرعة. نستعرض الحالات الأنسب لكل منهما.',
+    date: '15 ديسمبر 2024',
+    readTime: '5 دقائق',
+    content: `
+      <div class="article-cat">💻 التقنية</div>
+      <h1 class="article-title">WebSocket مقابل HTTP: متى تستخدم كلاً منهما؟</h1>
+      <div class="article-meta">
+        <span>📅 15 ديسمبر 2024</span>
+        <span>⏱ 5 دقائق قراءة</span>
+        <span>✍ فريق وَصْل</span>
+      </div>
+      <div class="article-content">
+        <p>عند بناء تطبيقات الويب الحديثة، يواجه كل مطوّر سؤالاً جوهرياً: هل أستخدم HTTP التقليدي أم بروتوكول WebSocket؟ الإجابة ليست واحدة للجميع، بل تعتمد على طبيعة تطبيقك واحتياجاته.</p>
+
+        <h3>ما هو HTTP؟</h3>
+        <p>HTTP هو بروتوكول التواصل الأساسي للويب. يعمل على مبدأ الطلب والاستجابة: يُرسل العميل طلباً، يستجيب الخادم، ثم تنتهي الاتصال. هذا يجعله مثالياً لتحميل الصفحات والـ APIs التقليدية.</p>
+
+        <h3>ما هو WebSocket؟</h3>
+        <p>WebSocket يفتح قناة اتصال ثنائية الاتجاه دائمة بين العميل والخادم. بمجرد تأسيس الاتصال، يمكن لأي طرف إرسال بيانات في أي وقت بدون الحاجة لطلب جديد.</p>
+
+        <h3>متى تستخدم كلاً منهما؟</h3>
+        <ul>
+          <li><strong>HTTP:</strong> تحميل الصفحات، الـ REST APIs، عمليات CRUD البسيطة.</li>
+          <li><strong>WebSocket:</strong> الدردشة الفورية، الألعاب متعددة اللاعبين، لوحات التعاون المباشر.</li>
+          <li><strong>HTTP مع Polling:</strong> حين تحتاج تحديثات شبه فورية ولا تريد تعقيد WebSocket.</li>
+        </ul>
+
+        <div class="tip-box">💡 <strong>نصيحة:</strong> في وَصْل نستخدم WebSocket عبر Socket.io لأن الدردشة الفورية تتطلب تحديثات في الميلي ثانية. أما API التسجيل وتحميل الملفات فيستخدمان HTTP العادي لأنها عمليات تحدث مرة واحدة.</div>
+
+        <p>الخلاصة: لا يوجد بروتوكول أفضل بالمطلق. كل منهما له مكانه المناسب، والمطوّر الجيد يعرف متى يستخدم أيهما.</p>
+      </div>
+    `
+  },
+  {
+    id: 2,
+    cat: 'study',
+    catLabel: '📚 الدراسة',
+    thumb: 'card-thumb-study',
+    emoji: '📖',
+    title: 'تقنية بومودورو: كيف تدرس ساعتين وكأنك درست ثماني؟',
+    excerpt: 'إدارة الوقت هي الفرق بين الطالب المتفوق والطالب المجتهد. تعرّف على تقنية التركيز الثوري التي تحوّل كيفية دراستك.',
+    date: '10 ديسمبر 2024',
+    readTime: '4 دقائق',
+    content: `
+      <div class="article-cat">📚 الدراسة</div>
+      <h1 class="article-title">تقنية بومودورو: كيف تدرس ساعتين وكأنك درست ثماني؟</h1>
+      <div class="article-meta">
+        <span>📅 10 ديسمبر 2024</span>
+        <span>⏱ 4 دقائق قراءة</span>
+        <span>✍ فريق وَصْل</span>
+      </div>
+      <div class="article-content">
+        <p>كم مرة جلست للمذاكرة لساعات طويلة ولم تتذكر شيئاً في اليوم التالي؟ المشكلة ليست في كمية الوقت بل في جودة التركيز. هنا تأتي تقنية بومودورو لتحل هذه المعضلة.</p>
+
+        <h3>ما هي تقنية بومودورو؟</h3>
+        <p>طوّرها فرانشيسكو سيريلو في الثمانينيات، وتعتمد على تقسيم وقت الدراسة إلى دورات متناوبة من التركيز المكثف والراحة القصيرة.</p>
+
+        <h3>كيف تطبّقها؟</h3>
+        <ul>
+          <li>اختر مهمة واحدة محددة تريد إنجازها.</li>
+          <li>اضبط مؤقتاً على 25 دقيقة وادرس بتركيز كامل.</li>
+          <li>خذ استراحة 5 دقائق عند انتهاء الوقت.</li>
+          <li>بعد 4 دورات، خذ استراحة طويلة من 15-30 دقيقة.</li>
+        </ul>
+
+        <h3>لماذا تنجح هذه التقنية؟</h3>
+        <p>الدماغ البشري لا يستطيع الحفاظ على تركيز عالٍ لأكثر من 25-30 دقيقة متواصلة. الاستراحات القصيرة تُعيد شحن القدرة على التركيز وتُقلل التعب الذهني.</p>
+
+        <div class="tip-box">💡 <strong>نصيحة عملية:</strong> أثناء جلسة البومودورو، أغلق كل الإشعارات، ضع هاتفك بعيداً، وأخبر من حولك أنك في وضع "تركيز". الانقطاعات هي عدوك الأول.</div>
+
+        <p>جرّب هذه التقنية لأسبوع واحد فقط وستلاحظ الفرق في مستوى استيعابك وتذكرك للمعلومات.</p>
+      </div>
+    `
+  },
+  {
+    id: 3,
+    cat: 'work',
+    catLabel: '💼 العمل',
+    thumb: 'card-thumb-work',
+    emoji: '💰',
+    title: 'العمل الحر للمبتدئين: من أين تبدأ وكيف تجد أول عميل؟',
+    excerpt: 'الفريلانس ليس حلماً بعيداً. دليل عملي خطوة بخطوة لبدء مسيرتك كمستقل وكسب دخل إضافي من مهاراتك.',
+    date: '5 ديسمبر 2024',
+    readTime: '6 دقائق',
+    content: `
+      <div class="article-cat">💼 العمل</div>
+      <h1 class="article-title">العمل الحر للمبتدئين: من أين تبدأ وكيف تجد أول عميل؟</h1>
+      <div class="article-meta">
+        <span>📅 5 ديسمبر 2024</span>
+        <span>⏱ 6 دقائق قراءة</span>
+        <span>✍ فريق وَصْل</span>
+      </div>
+      <div class="article-content">
+        <p>مع تطور اقتصاد الغيغ وانتشار العمل عن بعد، أصبح العمل الحر فرصة حقيقية لكل شخص يمتلك مهارة. سواء كنت مصمماً أو مبرمجاً أو كاتباً أو مترجماً، هناك عملاء يبحثون عنك الآن.</p>
+
+        <h3>الخطوة الأولى: حدّد مهارتك القابلة للبيع</h3>
+        <p>لا تحاول بيع كل شيء. ركّز على مهارة واحدة تُتقنها وتستطيع إنجاز مشاريع فيها. الخصوصية تجعلك أكثر جاذبية للعملاء من التخصص الواسع.</p>
+
+        <h3>المنصات الأفضل للمبتدئين</h3>
+        <ul>
+          <li><strong>Upwork:</strong> الأكبر عالمياً، منافسة عالية لكن فرص أكثر.</li>
+          <li><strong>Fiverr:</strong> أنسب للخدمات المحددة بأسعار ثابتة.</li>
+          <li><strong>Mostaql:</strong> المنصة العربية الأولى، فرص ممتازة للعرب.</li>
+          <li><strong>Khamsat:</strong> للخدمات الصغيرة باللغة العربية.</li>
+        </ul>
+
+        <h3>كيف تحصل على أول تقييم؟</h3>
+        <p>التقييمات هي عملة الفريلانس. في البداية، اقبل مشاريع بأسعار أقل مقابل تقييم ممتاز. بعد 5-10 تقييمات إيجابية، يمكنك رفع أسعارك تدريجياً.</p>
+
+        <div class="tip-box">💡 <strong>نصيحة ذهبية:</strong> أنشئ ملفاً شخصياً احترافياً مع أمثلة لأعمالك حتى لو كانت مشاريع شخصية. الأعمال بالنماذج أقوى من الكلام.</div>
+
+        <h3>الأخطاء التي يقع فيها المبتدئون</h3>
+        <ul>
+          <li>قبول أي مشروع بأي سعر خوفاً من الرفض.</li>
+          <li>عدم توثيق الاتفاقيات كتابياً مع العملاء.</li>
+          <li>الانتظار حتى "تكتمل" مهاراتهم قبل البدء.</li>
+        </ul>
+      </div>
+    `
+  },
+  {
+    id: 4,
+    cat: 'self',
+    catLabel: '🌱 تطوير الذات',
+    thumb: 'card-thumb-self',
+    emoji: '🧠',
+    title: '5 عادات يومية تحوّل حياتك في 30 يوماً',
+    excerpt: 'التغيير الكبير يبدأ من عادات صغيرة. هذه العادات الخمس مجتمعة تُحدث فرقاً حقيقياً في إنتاجيتك وصحتك وعلاقاتك.',
+    date: '1 ديسمبر 2024',
+    readTime: '5 دقائق',
+    content: `
+      <div class="article-cat">🌱 تطوير الذات</div>
+      <h1 class="article-title">5 عادات يومية تحوّل حياتك في 30 يوماً</h1>
+      <div class="article-meta">
+        <span>📅 1 ديسمبر 2024</span>
+        <span>⏱ 5 دقائق قراءة</span>
+        <span>✍ فريق وَصْل</span>
+      </div>
+      <div class="article-content">
+        <p>الحياة لا تتغير بقرارات كبيرة وحدها، بل تتشكّل من خلال الأشياء الصغيرة التي نفعلها كل يوم. هذه العادات الخمس بسيطة التطبيق لكن تأثيرها عميق ومتراكم.</p>
+
+        <h3>1. الاستيقاظ المبكر بشكل متدرج</h3>
+        <p>لا تحاول الاستيقاظ فجأة الساعة 5 صباحاً. ابدأ بتقديم وقت استيقاظك 15 دقيقة كل أسبوع. الساعة الأولى من يومك هي الأهم — خصّصها لنفسك لا للهاتف.</p>
+
+        <h3>2. قاعدة الـ 2 دقيقة</h3>
+        <p>أي مهمة تستغرق أقل من دقيقتين، افعلها فوراً. هذه القاعدة البسيطة تُزيل 80% من التسويف اليومي.</p>
+
+        <h3>3. القراءة 10 دقائق يومياً</h3>
+        <p>10 دقائق يومياً = 3 كتب شهرياً = 36 كتاباً سنوياً. أشخاص يقرؤون 36 كتاباً في السنة يختلفون تماماً عمن لا يقرؤون شيئاً.</p>
+
+        <h3>4. تدوين 3 أشياء ممتنّ لها</h3>
+        <p>قبل النوم، اكتب 3 أشياء حدثت اليوم تشعر بالامتنان لها. هذه العادة تُعيد برمجة الدماغ نحو التفاؤل وتُقلل التوتر.</p>
+
+        <h3>5. المشي 20 دقيقة في الهواء الطلق</h3>
+        <p>المشي يُحسّن المزاج، يُعزز الإبداع، ويُقلل مستويات الكورتيزول. ليس رياضة فاخرة — مجرد حذاء وباب مفتوح.</p>
+
+        <div class="tip-box">💡 <strong>مفتاح النجاح:</strong> لا تبدأ بالعادات الخمس مرة واحدة. ابدأ بواحدة فقط لمدة أسبوعين حتى تثبّت، ثم أضف الثانية. التراكم التدريجي أقوى من الانطلاق المتحمس الذي ينتهي سريعاً.</div>
+      </div>
+    `
+  },
+  {
+    id: 5,
+    cat: 'internet',
+    catLabel: '🌐 الإنترنت',
+    thumb: 'card-thumb-internet',
+    emoji: '🛡️',
+    title: 'كيف تحمي خصوصيتك على الإنترنت في 2025؟',
+    excerpt: 'في عالم تُجمع فيه بياناتك في كل نقرة، إليك الأدوات والعادات التي تجعلك مرئياً لمن تريد وغير مرئي لمن لا تريد.',
+    date: '25 نوفمبر 2024',
+    readTime: '7 دقائق',
+    content: `
+      <div class="article-cat">🌐 الإنترنت</div>
+      <h1 class="article-title">كيف تحمي خصوصيتك على الإنترنت في 2025؟</h1>
+      <div class="article-meta">
+        <span>📅 25 نوفمبر 2024</span>
+        <span>⏱ 7 دقائق قراءة</span>
+        <span>✍ فريق وَصْل</span>
+      </div>
+      <div class="article-content">
+        <p>كل موقع تزوره، كل بحث تُجريه، كل منتج تنظر إليه — كل هذا يُجمع ويُحلّل ويُباع. الخصوصية الرقمية لم تعد رفاهية بل ضرورة.</p>
+
+        <h3>الخطوات الأساسية التي لا تستغرق أكثر من ساعة</h3>
+        <ul>
+          <li><strong>كلمات مرور قوية وفريدة:</strong> استخدم مدير كلمات مرور مثل Bitwarden (مجاني ومفتوح المصدر) لكل حساب.</li>
+          <li><strong>المصادقة الثنائية (2FA):</strong> فعّلها على كل حساب يدعمها، خاصة البريد الإلكتروني والبنك.</li>
+          <li><strong>تحديث التطبيقات باستمرار:</strong> 90% من الاختراقات تستغل ثغرات في إصدارات قديمة.</li>
+        </ul>
+
+        <h3>للمهتمين بالخصوصية الأعمق</h3>
+        <ul>
+          <li>متصفح Brave أو Firefox بدلاً من Chrome.</li>
+          <li>محرك بحث DuckDuckGo بدلاً من Google.</li>
+          <li>VPN موثوق لتشفير اتصالاتك على الشبكات العامة.</li>
+          <li>بريد إلكتروني مشفّر مثل ProtonMail.</li>
+        </ul>
+
+        <div class="tip-box">🛡️ <strong>تذكّر:</strong> الخصوصية الكاملة مستحيلة، لكن الهدف هو جعل تتبّعك مكلفاً لمن يحاول. لا يحتاج أغلبنا لإخفاء شامل، بل لتقليل البصمة الرقمية غير الضرورية.</div>
+
+        <p>ابدأ بخطوة واحدة هذا الأسبوع: غيّر كلمة مرور بريدك الإلكتروني إلى واحدة قوية وفعّل المصادقة الثنائية. هذا وحده يحميك من 99% من محاولات الاختراق العشوائية.</p>
+      </div>
+    `
+  },
+  {
+    id: 6,
+    cat: 'tech',
+    catLabel: '💻 التقنية',
+    thumb: 'card-thumb-tech',
+    emoji: '⚡',
+    title: 'Socket.io vs. الـ REST API: اختر السلاح المناسب',
+    excerpt: 'كثيرون يستخدمون Socket.io لمجرد أنه يبدو "متطوراً". نشرح متى يكون الخيار الصحيح ومتى يكون مبالغة غير مبررة.',
+    date: '20 نوفمبر 2024',
+    readTime: '5 دقائق',
+    content: `
+      <div class="article-cat">💻 التقنية</div>
+      <h1 class="article-title">Socket.io vs. الـ REST API: اختر السلاح المناسب</h1>
+      <div class="article-meta">
+        <span>📅 20 نوفمبر 2024</span>
+        <span>⏱ 5 دقائق قراءة</span>
+        <span>✍ فريق وَصْل</span>
+      </div>
+      <div class="article-content">
+        <p>Socket.io مكتبة رائعة، لكن رؤيتها في كل مشروع هو مثل استخدام مطرقة ثقيلة لكسر جوزة. REST API بسيطة ومجرّبة وتكفي لـ 90% من الاحتياجات.</p>
+
+        <h3>متى تستخدم REST API؟</h3>
+        <ul>
+          <li>عمليات CRUD (إنشاء، قراءة، تعديل، حذف).</li>
+          <li>تسجيل الدخول وإدارة الحسابات.</li>
+          <li>رفع الملفات والصور.</li>
+          <li>أي عملية تحدث بناءً على طلب المستخدم فقط.</li>
+        </ul>
+
+        <h3>متى تستخدم Socket.io؟</h3>
+        <ul>
+          <li>الدردشة الفورية — حيث يحتاج كل مستخدم لرؤية رسائل الآخرين فوراً.</li>
+          <li>الإشعارات الآنية لجميع المستخدمين المتصلين.</li>
+          <li>الألعاب متعددة اللاعبين.</li>
+          <li>لوحات التعاون المباشر مثل Figma.</li>
+        </ul>
+
+        <h3>في وَصْل: الجمع بين الاثنين</h3>
+        <p>نستخدم REST API لتسجيل الدخول والتسجيل ورفع الملفات، بينما نستخدم Socket.io للرسائل الفورية وإشعارات الغرف. كل تقنية في مكانها المناسب.</p>
+
+        <div class="tip-box">💡 قاعدة بسيطة: إذا كان العميل يبدأ الطلب دائماً → REST. إذا كان الخادم يحتاج لإشعار العملاء ابتداءً من تلقاء نفسه → Socket.io.</div>
+      </div>
+    `
+  },
+  {
+    id: 7,
+    cat: 'study',
+    catLabel: '📚 الدراسة',
+    thumb: 'card-thumb-study',
+    emoji: '🗺️',
+    title: 'خرائط الذهن: أداة التعلم التي لم يُعلّمك إياها أحد',
+    excerpt: 'خرائط الذهن تحوّل المعلومات المتناثرة إلى شبكة واضحة يفهمها دماغك بسهولة. تعلّم كيف تبنيها للمذاكرة والتخطيط.',
+    date: '15 نوفمبر 2024',
+    readTime: '4 دقائق',
+    content: `
+      <div class="article-cat">📚 الدراسة</div>
+      <h1 class="article-title">خرائط الذهن: أداة التعلم التي لم يُعلّمك إياها أحد</h1>
+      <div class="article-meta">
+        <span>📅 15 نوفمبر 2024</span>
+        <span>⏱ 4 دقائق قراءة</span>
+        <span>✍ فريق وَصْل</span>
+      </div>
+      <div class="article-content">
+        <p>الدماغ البشري لا يعمل بشكل خطي من الجملة الأولى إلى الأخيرة. يفكّر بشبكات وروابط وصور. خرائط الذهن هي الطريقة الأقرب لطريقة تفكيره الطبيعية.</p>
+
+        <h3>ما هي خريطة الذهن؟</h3>
+        <p>رسم تتفرع منه أفكار رئيسية وفرعية مترابطة حول موضوع مركزي. بدلاً من القراءة المتسلسلة، ترى الصورة الكاملة دفعة واحدة.</p>
+
+        <h3>كيف تبني خريطة ذهن فعّالة؟</h3>
+        <ul>
+          <li>ابدأ بالفكرة الرئيسية في المنتصف.</li>
+          <li>أضف الأفكار الرئيسية كأغصان متفرعة.</li>
+          <li>لكل غصن رئيسي، أضف تفاصيل كأغصان فرعية.</li>
+          <li>استخدم ألواناً مختلفة لكل فرع — الألوان تُعزز الذاكرة.</li>
+          <li>أضف صور ورموز حيثما أمكن.</li>
+        </ul>
+
+        <h3>أفضل الأدوات المجانية</h3>
+        <ul>
+          <li><strong>MindMeister:</strong> واجهة جميلة، مجاني لـ 3 خرائط.</li>
+          <li><strong>XMind:</strong> قوي ومتكامل، النسخة المجانية تكفي.</li>
+          <li><strong>draw.io:</strong> مجاني تماماً وعبر المتصفح.</li>
+          <li>الورقة والقلم: لا تزال الأقوى للاستيعاب العميق.</li>
+        </ul>
+
+        <div class="tip-box">📚 <strong>تجربة:</strong> في المرة القادمة التي تدرس فيها فصلاً جديداً، بدلاً من قراءته مرتين، اقرأه مرة واحدة جيداً ثم اصنع له خريطة ذهن. ستتذكر أكثر وستوفر وقتاً أطول.</div>
+      </div>
+    `
+  },
+  {
+    id: 8,
+    cat: 'work',
+    catLabel: '💼 العمل',
+    thumb: 'card-thumb-work',
+    emoji: '🚀',
+    title: 'كيف تبني ملفاً شخصياً احترافياً يجذب العملاء؟',
+    excerpt: 'ملفك الشخصي هو أول ما يراه العميل. الفرق بين ملف يُقرأ ويُتجاهل وملف يُحوّل زوار إلى عملاء يكمن في تفاصيل بسيطة.',
+    date: '10 نوفمبر 2024',
+    readTime: '5 دقائق',
+    content: `
+      <div class="article-cat">💼 العمل</div>
+      <h1 class="article-title">كيف تبني ملفاً شخصياً احترافياً يجذب العملاء؟</h1>
+      <div class="article-meta">
+        <span>📅 10 نوفمبر 2024</span>
+        <span>⏱ 5 دقائق قراءة</span>
+        <span>✍ فريق وَصْل</span>
+      </div>
+      <div class="article-content">
+        <p>سواء كنت على LinkedIn أو Upwork أو Mostaql، ملفك الشخصي هو مكتبك في العالم الرقمي. زيارته تعني أن شخصاً ما اهتم بما تفعله — لا تضيّع هذه الفرصة.</p>
+
+        <h3>العنوان: ثواني تُحدد مصيرك</h3>
+        <p>العنوان هو أول ما يُقرأ. لا تكتب فقط "مطوّر ويب" — اكتب القيمة التي تقدمها: "أبني تطبيقات ويب سريعة وجذابة تحوّل الزوار إلى عملاء".</p>
+
+        <h3>الصورة الشخصية تساوي 1000 كلمة</h3>
+        <ul>
+          <li>صورة واضحة لوجهك، جودة عالية.</li>
+          <li>خلفية بسيطة لا تشتت الانتباه.</li>
+          <li>ابتسامة طبيعية — تعكس ثقة وانفتاحاً.</li>
+          <li>مظهر مناسب للمجال الذي تعمل فيه.</li>
+        </ul>
+
+        <h3>محفظة الأعمال: دع عملك يتكلم</h3>
+        <p>3-5 أمثلة ممتازة أفضل من 20 عمل متوسط. لكل مشروع: صورة، وصف قصير، التحديات التي واجهتها، والنتائج التي حققتها.</p>
+
+        <h3>التوصيات: أقوى أداة إقناع</h3>
+        <p>توصية واحدة حقيقية من عميل راضٍ تساوي عشرة أوصاف ذاتية. اطلب من كل عميل منحاك تقييماً صغيراً بعد انتهاء المشروع.</p>
+
+        <div class="tip-box">🚀 <strong>نصيحة أخيرة:</strong> حدّث ملفك الشخصي كل 3 أشهر. المهارات الجديدة، المشاريع الجديدة، الشهادات الجديدة — كل إضافة تزيد من ظهورك في نتائج البحث وتُظهر أنك تتطور باستمرار.</div>
+      </div>
+    `
+  }
+];
+
+let filteredPosts = [...posts];
+
+function renderPosts(postsToRender) {
+  const grid = document.getElementById('blog-grid');
+  grid.innerHTML = postsToRender.map(p => `
+    <div class="blog-card" onclick="openArticle(${p.id})">
+      <div class="card-thumb ${p.thumb}">${p.emoji}</div>
+      <div class="card-body">
+        <span class="card-category">${p.catLabel}</span>
+        <div class="card-title">${p.title}</div>
+        <div class="card-excerpt">${p.excerpt}</div>
+        <div class="card-meta">
+          <span>📅 ${p.date} · ⏱ ${p.readTime}</span>
+          <button class="card-read-btn">اقرأ المقال</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function filterPosts(cat, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  filteredPosts = cat === 'all' ? [...posts] : posts.filter(p => p.cat === cat);
+  renderPosts(filteredPosts);
+}
+
+function openArticle(id) {
+  const post = posts.find(p => p.id === id);
+  if (!post) return;
+  document.getElementById('article-body').innerHTML = post.content;
+  document.getElementById('article-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeArticle() {
+  document.getElementById('article-modal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// Init
+renderPosts(posts);
+</script>
+</body>
+</html>
