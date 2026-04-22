@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>وَصْل — لوحة التحكم</title>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0d0f14; --bg2: #111318; --bg3: #161923; --bg4: #1e2130;
+      --accent: #3b82f6; --accent2: #8b5cf6; --online: #22c55e; --danger: #ef4444; --warn: #f59e0b;
+      --text: #f1f5f9; --text2: #8892a4; --text3: #4b5563;
+      --border: #1e2535; --radius: 12px;
+      --font: 'Tajawal', system-ui, sans-serif; --mono: 'JetBrains Mono', monospace;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; direction: rtl; }
+
+    .topbar {
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .topbar-brand { display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 700; }
+    .topbar-brand span:first-child { font-size: 22px; }
+    .admin-badge { background: var(--accent); color: #fff; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px; letter-spacing: 1px; }
+
+    .topbar-actions { display: flex; align-items: center; gap: 12px; }
+
+    .status-indicator { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--online); }
+    .status-dot { width: 7px; height: 7px; background: var(--online); border-radius: 50%; box-shadow: 0 0 8px var(--online); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+    .refresh-btn {
+      background: var(--bg4);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text2);
+      cursor: pointer;
+      font-family: var(--font);
+      font-size: 13px;
+      padding: 7px 14px;
+      transition: all .2s;
+    }
+    .refresh-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .container { max-width: 1200px; margin: 0 auto; padding: 28px 20px; }
+
+    /* Stats Cards */
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+
+    .stat-card {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .stat-icon { font-size: 32px; }
+    .stat-value { font-size: 28px; font-weight: 700; color: var(--text); font-family: var(--mono); }
+    .stat-label { font-size: 12px; color: var(--text2); margin-top: 2px; }
+
+    /* Rooms Table */
+    .section-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .rooms-table {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin-bottom: 28px;
+    }
+
+    table { width: 100%; border-collapse: collapse; }
+
+    th {
+      background: var(--bg4);
+      color: var(--text2);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      padding: 12px 16px;
+      text-align: right;
+      border-bottom: 1px solid var(--border);
+    }
+
+    td {
+      padding: 12px 16px;
+      font-size: 13px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg4); }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .badge-green  { background: #22c55e18; border: 1px solid #22c55e30; color: var(--online); }
+    .badge-gray   { background: #6b728018; border: 1px solid #6b728030; color: var(--text2); }
+    .badge-blue   { background: #3b82f618; border: 1px solid #3b82f630; color: var(--accent); }
+
+    .delete-room-btn {
+      background: #ef444415;
+      border: 1px solid #ef444440;
+      border-radius: 6px;
+      color: var(--danger);
+      cursor: pointer;
+      font-family: var(--font);
+      font-size: 12px;
+      padding: 5px 12px;
+      transition: all .2s;
+    }
+    .delete-room-btn:hover { background: #ef444425; }
+
+    /* Messages Panel */
+    .messages-panel {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .messages-panel-header {
+      background: var(--bg4);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .room-selector {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 13px;
+      padding: 6px 12px;
+      outline: none;
+    }
+
+    .admin-messages { padding: 14px; max-height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+    .admin-messages::-webkit-scrollbar { width: 3px; }
+    .admin-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .admin-msg {
+      background: var(--bg4);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 13px;
+    }
+
+    .admin-msg-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+    .admin-msg-user   { font-weight: 600; color: var(--accent); font-size: 12px; }
+    .admin-msg-time   { font-size: 10px; color: var(--text3); font-family: var(--mono); }
+    .admin-msg-text   { color: var(--text); line-height: 1.5; }
+    .admin-msg-type   { font-size: 10px; color: var(--text3); margin-top: 4px; }
+
+    .empty-state { text-align: center; padding: 32px; color: var(--text3); font-size: 14px; }
+
+    .footer-credit {
+      text-align: center;
+      padding: 16px;
+      font-size: 12px;
+      color: var(--text3);
+      border-top: 1px solid var(--border);
+      margin-top: 28px;
+    }
+
+    @media (max-width: 768px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .container  { padding: 16px 12px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-brand">
+    <span>🔗</span>
+    <span>وَصْل</span>
+    <span class="admin-badge">ADMIN</span>
+  </div>
+  <div class="topbar-actions">
+    <div class="status-indicator"><div class="status-dot"></div><span id="last-updated">جاري التحميل...</span></div>
+    <button class="refresh-btn" onclick="loadStats()">🔄 تحديث</button>
+    <button class="open-users-btn" onclick="openUsersModal()">👥 إدارة المستخدمين</button>
+    <a href="/" class="refresh-btn" style="text-decoration:none">🏠 الموقع</a>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- Stats -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon">🏠</div>
+      <div><div class="stat-value" id="stat-rooms">0</div><div class="stat-label">الغرف النشطة</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">👥</div>
+      <div><div class="stat-value" id="stat-users">0</div><div class="stat-label">المتصلون الآن</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">📝</div>
+      <div><div class="stat-value" id="stat-msgs">0</div><div class="stat-label">إجمالي الرسائل</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🔑</div>
+      <div><div class="stat-value" id="stat-reg">0</div><div class="stat-label">المستخدمون المسجلون</div></div>
+    </div>
+  </div>
+
+  <!-- Rooms Table -->
+  <div class="section-title">🏠 قائمة الغرف</div>
+  <div class="rooms-table">
+    <table>
+      <thead>
+        <tr>
+          <th>الغرفة</th>
+          <th>الرمز</th>
+          <th>النوع</th>
+          <th>المتصلون</th>
+          <th>الرسائل</th>
+          <th>وقت الإنشاء</th>
+          <th>إجراء</th>
+        </tr>
+      </thead>
+      <tbody id="rooms-tbody">
+        <tr><td colspan="7" class="empty-state">لا توجد غرف</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Messages Panel -->
+  <div class="section-title">💬 رسائل الغرف</div>
+  <div class="messages-panel">
+    <div class="messages-panel-header">
+      <span style="font-size:13px;font-weight:600">آخر 20 رسالة</span>
+      <select class="room-selector" id="room-selector" onchange="renderSelectedMessages()">
+        <option value="">اختر غرفة...</option>
+      </select>
+    </div>
+    <div class="admin-messages" id="admin-messages">
+      <div class="empty-state">اختر غرفة لعرض رسائلها</div>
+    </div>
+  </div>
+
+  <div class="footer-credit">by omar benbouzid dev</div>
+</div>
+
+<!-- ══════════════════════ USERS MODAL ══════════════════════ -->
+<div id="users-modal" class="modal-overlay" style="display:none">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span>👤 إدارة المستخدمين</span>
+      <button class="modal-close-btn" onclick="closeUsersModal()">✕</button>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="modal-toolbar">
+      <input type="text" id="user-search" class="user-search-input" placeholder="🔍 ابحث عن مستخدم..." oninput="renderUsersTable()" />
+      <div class="user-filter-tabs">
+        <button class="uf-tab active" data-filter="all"    onclick="setUserFilter('all',this)">الكل</button>
+        <button class="uf-tab"        data-filter="online" onclick="setUserFilter('online',this)">🟢 متصل</button>
+        <button class="uf-tab"        data-filter="banned" onclick="setUserFilter('banned',this)">🚫 محظور</button>
+        <button class="uf-tab"        data-filter="verified" onclick="setUserFilter('verified',this)">✔️ موثّق</button>
+      </div>
+    </div>
+
+    <!-- Stats row -->
+    <div class="user-stats-row" id="user-stats-row"></div>
+
+    <!-- Users Table -->
+    <div class="users-table-wrap">
+      <table class="users-table">
+        <thead>
+          <tr>
+            <th>المستخدم</th>
+            <th>الحالة</th>
+            <th>الغرف</th>
+            <th>التوثيق</th>
+            <th>الإجراءات</th>
+          </tr>
+        </thead>
+        <tbody id="users-tbody">
+          <tr><td colspan="5" class="empty-state">جاري التحميل...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Reset Password Panel -->
+    <div id="reset-pw-panel" class="reset-pw-panel" style="display:none">
+      <div class="rpw-header">
+        <span>🔑 إعادة تعيين كلمة المرور لـ: <strong id="rpw-username"></strong></span>
+        <button onclick="closeResetPw()" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:16px">✕</button>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <input type="text" id="rpw-input" class="user-search-input" placeholder="كلمة المرور الجديدة (4 أحرف+)" style="flex:1;min-width:160px" />
+        <button class="action-btn-green" onclick="confirmResetPw()">حفظ كلمة المرور</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════ USER DETAIL MODAL ══════════════════════ -->
+<div id="user-detail-modal" class="modal-overlay" style="display:none">
+  <div class="modal-box" style="max-width:480px">
+    <div class="modal-header">
+      <span id="ud-title">تفاصيل المستخدم</span>
+      <button class="modal-close-btn" onclick="closeUserDetail()">✕</button>
+    </div>
+    <div id="ud-body" style="padding:20px"></div>
+  </div>
+</div>
+
+<style>
+/* ═══════ MODAL BASE ═══════ */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  background: #000000bb;
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+  animation: fadeIn .2s ease;
+}
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+.modal-box {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  width: 100%; max-width: 880px;
+  max-height: 90vh;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  animation: slideUp .25s ease;
+}
+@keyframes slideUp { from{transform:translateY(24px);opacity:0} to{transform:translateY(0);opacity:1} }
+
+.modal-header {
+  background: var(--bg4);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 20px;
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 15px; font-weight: 700; flex-shrink: 0;
+}
+.modal-close-btn {
+  background: none; border: none; color: var(--text2);
+  cursor: pointer; font-size: 18px; padding: 2px 8px;
+  border-radius: 6px; transition: all .2s;
+}
+.modal-close-btn:hover { background: #ef444430; color: var(--danger); }
+
+/* ═══════ TOOLBAR ═══════ */
+.modal-toolbar {
+  padding: 14px 16px;
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg2);
+  flex-shrink: 0;
+}
+.user-search-input {
+  background: var(--bg4); border: 1px solid var(--border);
+  border-radius: 8px; color: var(--text); font-family: var(--font);
+  font-size: 13px; padding: 8px 12px; outline: none; transition: all .2s;
+  min-width: 180px;
+}
+.user-search-input:focus { border-color: var(--accent); }
+
+.user-filter-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.uf-tab {
+  background: var(--bg4); border: 1px solid var(--border);
+  border-radius: 6px; color: var(--text2); cursor: pointer;
+  font-family: var(--font); font-size: 12px; font-weight: 600;
+  padding: 5px 12px; transition: all .2s;
+}
+.uf-tab:hover, .uf-tab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* ═══════ USER STATS ═══════ */
+.user-stats-row {
+  display: flex; gap: 12px; padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg2); flex-shrink: 0;
+}
+.us-chip {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--bg4); border: 1px solid var(--border);
+  border-radius: 999px; font-size: 12px; padding: 4px 12px;
+}
+.us-chip strong { color: var(--text); }
+.us-chip span   { color: var(--text2); }
+
+/* ═══════ USERS TABLE ═══════ */
+.users-table-wrap { overflow-y: auto; flex: 1; }
+.users-table { width: 100%; border-collapse: collapse; }
+.users-table th {
+  background: var(--bg4); color: var(--text2);
+  font-size: 11px; font-weight: 700; letter-spacing: 1px;
+  padding: 10px 14px; text-align: right; position: sticky; top: 0;
+  border-bottom: 1px solid var(--border);
+}
+.users-table td {
+  padding: 10px 14px; font-size: 13px;
+  border-bottom: 1px solid var(--border); vertical-align: middle;
+}
+.users-table tr:last-child td { border-bottom: none; }
+.users-table tr:hover td { background: var(--bg4); }
+
+/* ─── User Cell ─── */
+.user-cell { display: flex; align-items: center; gap: 10px; }
+.user-avatar {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 700; color: #fff; flex-shrink: 0;
+  position: relative;
+}
+.user-avatar .online-ring {
+  position: absolute; bottom: 1px; left: 1px;
+  width: 9px; height: 9px; border-radius: 50%;
+  border: 2px solid var(--bg3);
+}
+.online-ring.online  { background: var(--online); }
+.online-ring.offline { background: var(--text3); }
+
+.user-name  { font-size: 13px; font-weight: 700; color: var(--text); }
+.user-meta  { font-size: 11px; color: var(--text3); margin-top: 1px; }
+
+/* ─── Status Badges ─── */
+.status-pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  border-radius: 999px; font-size: 11px; font-weight: 600;
+  padding: 3px 9px; white-space: nowrap;
+}
+.pill-online   { background: #22c55e18; border: 1px solid #22c55e40; color: var(--online); }
+.pill-offline  { background: #6b728018; border: 1px solid #6b728030; color: var(--text2); }
+.pill-banned   { background: #ef444418; border: 1px solid #ef444440; color: var(--danger); }
+.pill-verified { background: #3b82f618; border: 1px solid #3b82f640; color: var(--accent); }
+
+/* ─── Action Buttons ─── */
+.act-row { display: flex; gap: 5px; flex-wrap: wrap; }
+
+.action-btn-base {
+  border-radius: 6px; cursor: pointer; font-family: var(--font);
+  font-size: 11px; font-weight: 600; padding: 5px 10px;
+  transition: all .2s; border: 1px solid transparent;
+  white-space: nowrap;
+}
+.action-btn-blue   { background: #3b82f618; border-color: #3b82f640; color: var(--accent); }
+.action-btn-blue:hover { background: #3b82f630; }
+
+.action-btn-green  { background: #22c55e18; border-color: #22c55e40; color: var(--online); }
+.action-btn-green:hover { background: #22c55e30; }
+
+.action-btn-amber  { background: #f59e0b18; border-color: #f59e0b40; color: var(--warn); }
+.action-btn-amber:hover { background: #f59e0b30; }
+
+.action-btn-red    { background: #ef444418; border-color: #ef444440; color: var(--danger); }
+.action-btn-red:hover { background: #ef444430; }
+
+.action-btn-gray   { background: var(--bg4); border-color: var(--border); color: var(--text2); }
+.action-btn-gray:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ─── Reset PW Panel ─── */
+.reset-pw-panel {
+  background: var(--bg2); border-top: 1px solid var(--border);
+  padding: 14px 16px; flex-shrink: 0;
+}
+.rpw-header {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 13px; font-weight: 600; margin-bottom: 12px;
+  color: var(--text2);
+}
+
+/* ─── Open Users button ─── */
+.open-users-btn {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border: none; border-radius: 8px; color: #fff; cursor: pointer;
+  font-family: var(--font); font-size: 13px; font-weight: 700;
+  padding: 8px 18px; transition: all .2s; display: flex;
+  align-items: center; gap: 7px;
+}
+.open-users-btn:hover { opacity: .88; transform: translateY(-1px); }
+
+/* ─── User Detail ─── */
+.ud-info-row { display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+.ud-info-row:last-child { border-bottom: none; }
+.ud-info-label { color: var(--text2); }
+.ud-info-val   { color: var(--text); font-weight: 600; }
+
+@media (max-width: 640px) {
+  .modal-toolbar { flex-direction: column; align-items: stretch; }
+  .act-row { flex-direction: column; }
+}
+</style>
+
+<script>
+  let statsData = null;
+
+  async function loadStats() {
+    try {
+      const res  = await fetch('/api/admin/stats');
+      statsData  = await res.json();
+
+      document.getElementById('stat-rooms').textContent = statsData.totalRooms;
+      document.getElementById('stat-users').textContent = statsData.totalUsers;
+      document.getElementById('stat-reg').textContent   = statsData.registeredUsers;
+
+      let totalMsgs = 0;
+      statsData.rooms.forEach(r => totalMsgs += r.msgCount);
+      document.getElementById('stat-msgs').textContent = totalMsgs;
+
+      renderRoomsTable(statsData.rooms);
+      renderRoomSelector(statsData.rooms);
+
+      const now = new Date().toLocaleTimeString('ar-EG', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+      document.getElementById('last-updated').textContent = `آخر تحديث: ${now}`;
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  function renderRoomsTable(rooms) {
+    const tbody = document.getElementById('rooms-tbody');
+    if (!rooms.length) {
+      tbody.innerHTML = '<tr><td colspan="7" class="empty-state">لا توجد غرف حالياً</td></tr>';
+      return;
+    }
+    tbody.innerHTML = rooms.map(r => `
+      <tr>
+        <td><strong>${escHtml(r.name)}</strong></td>
+        <td><code style="font-family:var(--mono);font-size:11px;color:var(--accent)">${escHtml(r.id)}</code></td>
+        <td>
+          ${r.persistent
+            ? '<span class="badge badge-blue">📌 دائمة</span>'
+            : '<span class="badge badge-gray">⏳ مؤقتة</span>'}
+        </td>
+        <td>
+          <span class="badge ${r.userCount > 0 ? 'badge-green' : 'badge-gray'}">
+            ${r.userCount > 0 ? '🟢' : '⚫'} ${r.userCount}
+          </span>
+        </td>
+        <td style="font-family:var(--mono);color:var(--accent)">${r.msgCount}</td>
+        <td style="color:var(--text2);font-size:12px">${formatDate(r.createdAt)}</td>
+        <td>
+          <button class="delete-room-btn" onclick="deleteRoom('${r.id}', '${escHtml(r.name)}')">🗑️ حذف</button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  function renderRoomSelector(rooms) {
+    const sel = document.getElementById('room-selector');
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">اختر غرفة...</option>' +
+      rooms.map(r => `<option value="${r.id}" ${r.id===cur?'selected':''}>${escHtml(r.name)} (${r.msgCount})</option>`).join('');
+    if (cur) renderSelectedMessages();
+  }
+
+  function renderSelectedMessages() {
+    const roomId = document.getElementById('room-selector').value;
+    const el     = document.getElementById('admin-messages');
+    if (!roomId || !statsData) { el.innerHTML = '<div class="empty-state">اختر غرفة لعرض رسائلها</div>'; return; }
+    const room = statsData.rooms.find(r => r.id === roomId);
+    if (!room || !room.messages.length) { el.innerHTML = '<div class="empty-state">لا توجد رسائل</div>'; return; }
+    el.innerHTML = [...room.messages].reverse().map(m => `
+      <div class="admin-msg">
+        <div class="admin-msg-header">
+          <span class="admin-msg-user">${escHtml(m.username)}</span>
+          <span class="admin-msg-time">${formatDate(m.timestamp)}</span>
+        </div>
+        <div class="admin-msg-text">
+          ${m.type === 'text'  ? escHtml(m.text || (m.deleted ? '🗑️ محذوفة' : '')) : ''}
+          ${m.type === 'image' ? `🖼️ صورة ${m.caption ? '— '+escHtml(m.caption) : ''}` : ''}
+          ${m.type === 'file'  ? `📄 ملف: ${escHtml(m.fileName || '')}` : ''}
+        </div>
+        <div class="admin-msg-type">${m.type} • ${m.id}</div>
+      </div>
+    `).join('');
+  }
+
+  async function deleteRoom(roomId, name) {
+    if (!confirm(`حذف الغرفة "${name}" نهائياً؟`)) return;
+    try {
+      const res = await fetch(`/api/admin/rooms/${roomId}`, { method: 'DELETE' });
+      if (res.ok) { alert('تم حذف الغرفة'); loadStats(); }
+      else alert('فشل الحذف');
+    } catch { alert('خطأ في الاتصال'); }
+  }
+
+  function formatDate(iso) {
+    try { return new Date(iso).toLocaleString('ar-EG', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }); }
+    catch { return iso; }
+  }
+
+  function escHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // Load immediately and auto-refresh every 10s
+  loadStats();
+  setInterval(loadStats, 10000);
+
+  // ══════════════════════════════════════════
+  // ─── Users Management ───
+  // ══════════════════════════════════════════
+
+  let usersData    = [];
+  let userFilter   = 'all';
+  let resetTarget  = null;
+
+  async function openUsersModal() {
+    document.getElementById('users-modal').style.display = 'flex';
+    document.getElementById('user-search').value = '';
+    userFilter = 'all';
+    document.querySelectorAll('.uf-tab').forEach(t => t.classList.toggle('active', t.dataset.filter === 'all'));
+    await fetchUsers();
+  }
+
+  function closeUsersModal() {
+    document.getElementById('users-modal').style.display = 'none';
+    closeResetPw();
+  }
+
+  async function fetchUsers() {
+    try {
+      const res = await fetch('/api/admin/users');
+      const data = await res.json();
+      usersData = data.users || [];
+      renderUsersStats();
+      renderUsersTable();
+    } catch(e) { console.error(e); }
+  }
+
+  function renderUsersStats() {
+    const total    = usersData.length;
+    const online   = usersData.filter(u => u.isOnline).length;
+    const banned   = usersData.filter(u => u.banned).length;
+    const verified = usersData.filter(u => u.verified).length;
+    document.getElementById('user-stats-row').innerHTML = `
+      <div class="us-chip"><strong>${total}</strong><span>إجمالي</span></div>
+      <div class="us-chip"><strong style="color:var(--online)">${online}</strong><span>متصل الآن</span></div>
+      <div class="us-chip"><strong style="color:var(--danger)">${banned}</strong><span>محظور</span></div>
+      <div class="us-chip"><strong style="color:var(--accent)">${verified}</strong><span>موثّق</span></div>
+    `;
+  }
+
+  function setUserFilter(f, btn) {
+    userFilter = f;
+    document.querySelectorAll('.uf-tab').forEach(t => t.classList.toggle('active', t.dataset.filter === f));
+    renderUsersTable();
+  }
+
+  function renderUsersTable() {
+    const q   = (document.getElementById('user-search')?.value || '').toLowerCase();
+    let list  = usersData;
+
+    if (userFilter === 'online')   list = list.filter(u => u.isOnline);
+    if (userFilter === 'banned')   list = list.filter(u => u.banned);
+    if (userFilter === 'verified') list = list.filter(u => u.verified);
+    if (q) list = list.filter(u => u.username.toLowerCase().includes(q));
+
+    const tbody = document.getElementById('users-tbody');
+    if (!list.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty-state">لا توجد نتائج</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = list.map(u => {
+      const isAdmin = u.username === 'admin';
+      const initial = u.username[0].toUpperCase();
+      const roomsCount = (u.myRooms || []).length;
+
+      return `
+        <tr>
+          <!-- Name -->
+          <td>
+            <div class="user-cell">
+              <div class="user-avatar">
+                ${initial}
+                <div class="online-ring ${u.isOnline ? 'online' : 'offline'}"></div>
+              </div>
+              <div>
+                <div class="user-name">
+                  ${escHtml(u.username)}
+                  ${isAdmin ? '<span style="background:#f59e0b22;border:1px solid #f59e0b44;color:var(--warn);font-size:10px;padding:1px 7px;border-radius:999px;margin-right:5px">ADMIN</span>' : ''}
+                  ${u.verified ? '<span style="background:#3b82f622;border:1px solid #3b82f644;color:var(--accent);font-size:10px;padding:1px 7px;border-radius:999px">✔ موثّق</span>' : ''}
+                  ${u.banned   ? '<span style="background:#ef444422;border:1px solid #ef444444;color:var(--danger);font-size:10px;padding:1px 7px;border-radius:999px">🚫 محظور</span>' : ''}
+                </div>
+                <div class="user-meta">${u.createdAt ? 'سُجّل: ' + formatDate(u.createdAt) : 'مستخدم قديم'}</div>
+              </div>
+            </div>
+          </td>
+
+          <!-- Status -->
+          <td>
+            ${u.isOnline
+              ? `<span class="status-pill pill-online">🟢 متصل${u.currentRoom ? ' · '+escHtml(u.currentRoom.slice(0,6)) : ''}</span>`
+              : `<span class="status-pill pill-offline">⚫ غير متصل</span>`}
+          </td>
+
+          <!-- Rooms -->
+          <td>
+            <span class="status-pill ${roomsCount > 0 ? 'pill-verified' : 'pill-offline'}">${roomsCount} غرفة</span>
+          </td>
+
+          <!-- Verify -->
+          <td>
+            ${!isAdmin ? `
+              <button
+                class="action-btn-base ${u.verified ? 'action-btn-amber' : 'action-btn-green'}"
+                onclick="toggleVerify('${escHtml(u.username)}')">
+                ${u.verified ? '✖ إلغاء التوثيق' : '✔ توثيق'}
+              </button>` : '<span style="color:var(--text3);font-size:12px">—</span>'}
+          </td>
+
+          <!-- Actions -->
+          <td>
+            <div class="act-row">
+              <button class="action-btn-base action-btn-blue" onclick="openUserDetail('${escHtml(u.username)}')">🔍 تفاصيل</button>
+              ${!isAdmin ? `
+                <button class="action-btn-base action-btn-amber" onclick="openResetPw('${escHtml(u.username)}')">🔑 كلمة المرور</button>
+                ${u.isOnline ? `<button class="action-btn-base action-btn-gray" onclick="kickUser('${escHtml(u.username)}')">⏻ طرد</button>` : ''}
+                <button class="action-btn-base ${u.banned ? 'action-btn-green' : 'action-btn-amber'}" onclick="toggleBan('${escHtml(u.username)}')">
+                  ${u.banned ? '✅ رفع الحظر' : '🚫 حظر'}
+                </button>
+                <button class="action-btn-base action-btn-red" onclick="deleteUser('${escHtml(u.username)}')">🗑 حذف</button>
+              ` : '<span style="color:var(--text3);font-size:12px">محمي</span>'}
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  async function toggleVerify(username) {
+    try {
+      const res  = await fetch(`/api/admin/users/${encodeURIComponent(username)}/verify`, { method: 'POST' });
+      const data = await res.json();
+      if (data.ok) {
+        showToast(data.verified ? `✔️ تم توثيق ${username}` : `❌ تم إلغاء توثيق ${username}`);
+        await fetchUsers();
+      }
+    } catch(e) { showToast('خطأ في الاتصال', true); }
+  }
+
+  async function toggleBan(username) {
+    const user = usersData.find(u => u.username === username);
+    const msg  = user?.banned ? `رفع الحظر عن "${username}"؟` : `حظر المستخدم "${username}"؟`;
+    if (!confirm(msg)) return;
+    try {
+      const res  = await fetch(`/api/admin/users/${encodeURIComponent(username)}/ban`, { method: 'POST' });
+      const data = await res.json();
+      if (data.ok) {
+        showToast(data.banned ? `🚫 تم حظر ${username}` : `✅ تم رفع الحظر عن ${username}`);
+        await fetchUsers();
+      } else { showToast(data.error, true); }
+    } catch(e) { showToast('خطأ في الاتصال', true); }
+  }
+
+  async function kickUser(username) {
+    if (!confirm(`طرد المستخدم "${username}" من الموقع؟`)) return;
+    try {
+      const res  = await fetch(`/api/admin/users/${encodeURIComponent(username)}/kick`, { method: 'POST' });
+      const data = await res.json();
+      showToast(data.kicked ? `⏻ تم طرد ${username}` : `${username} ليس متصلاً`);
+      await fetchUsers();
+    } catch(e) { showToast('خطأ في الاتصال', true); }
+  }
+
+  async function deleteUser(username) {
+    if (!confirm(`حذف حساب "${username}" نهائياً؟ لا يمكن التراجع.`)) return;
+    try {
+      const res  = await fetch(`/api/admin/users/${encodeURIComponent(username)}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.ok) { showToast(`🗑 تم حذف ${username}`); await fetchUsers(); }
+      else { showToast(data.error, true); }
+    } catch(e) { showToast('خطأ في الاتصال', true); }
+  }
+
+  function openResetPw(username) {
+    resetTarget = username;
+    document.getElementById('rpw-username').textContent = username;
+    document.getElementById('rpw-input').value = '';
+    document.getElementById('reset-pw-panel').style.display = 'block';
+    document.getElementById('rpw-input').focus();
+  }
+  function closeResetPw() {
+    resetTarget = null;
+    document.getElementById('reset-pw-panel').style.display = 'none';
+  }
+  async function confirmResetPw() {
+    const pw = document.getElementById('rpw-input').value.trim();
+    if (!pw || pw.length < 4) { showToast('كلمة المرور يجب أن تكون 4 أحرف على الأقل', true); return; }
+    try {
+      const res  = await fetch(`/api/admin/users/${encodeURIComponent(resetTarget)}/reset-password`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newPassword: pw })
+      });
+      const data = await res.json();
+      if (data.ok) { showToast(`🔑 تم تغيير كلمة مرور ${resetTarget}`); closeResetPw(); }
+      else { showToast(data.error, true); }
+    } catch(e) { showToast('خطأ في الاتصال', true); }
+  }
+
+  function openUserDetail(username) {
+    const u = usersData.find(x => x.username === username);
+    if (!u) return;
+    document.getElementById('ud-title').textContent = `👤 ${username}`;
+    document.getElementById('ud-body').innerHTML = `
+      <div class="ud-info-row"><span class="ud-info-label">اسم المستخدم</span><span class="ud-info-val">${escHtml(u.username)}</span></div>
+      <div class="ud-info-row"><span class="ud-info-label">الحالة</span><span class="ud-info-val">${u.isOnline ? '🟢 متصل الآن' : '⚫ غير متصل'}</span></div>
+      <div class="ud-info-row"><span class="ud-info-label">الغرفة الحالية</span><span class="ud-info-val">${u.currentRoom ? escHtml(u.currentRoom) : '—'}</span></div>
+      <div class="ud-info-row"><span class="ud-info-label">التوثيق</span><span class="ud-info-val">${u.verified ? '✔️ موثّق' : '❌ غير موثّق'}</span></div>
+      <div class="ud-info-row"><span class="ud-info-label">الحظر</span><span class="ud-info-val">${u.banned ? '🚫 محظور' : '✅ نشط'}</span></div>
+      <div class="ud-info-row"><span class="ud-info-label">عدد الغرف المحفوظة</span><span class="ud-info-val">${(u.myRooms||[]).length} غرف</span></div>
+      <div class="ud-info-row"><span class="ud-info-label">تاريخ التسجيل</span><span class="ud-info-val">${u.createdAt ? formatDate(u.createdAt) : 'غير معروف'}</span></div>
+      ${(u.myRooms||[]).length > 0 ? `
+      <div style="margin-top:16px">
+        <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">الغرف المحفوظة:</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          ${u.myRooms.map(r => `<span style="background:var(--bg4);border:1px solid var(--border);border-radius:6px;font-size:11px;padding:3px 8px;font-family:var(--mono);color:var(--accent)">${escHtml(r)}</span>`).join('')}
+        </div>
+      </div>` : ''}
+    `;
+    document.getElementById('user-detail-modal').style.display = 'flex';
+  }
+  function closeUserDetail() {
+    document.getElementById('user-detail-modal').style.display = 'none';
+  }
+
+  // Close modals on backdrop click
+  document.getElementById('users-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeUsersModal();
+  });
+  document.getElementById('user-detail-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeUserDetail();
+  });
+
+  // ─── Toast Notification ───
+  function showToast(msg, isError = false) {
+    const existing = document.getElementById('admin-toast');
+    if (existing) existing.remove();
+    const t = document.createElement('div');
+    t.id = 'admin-toast';
+    t.style.cssText = `
+      position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:99999;
+      background:${isError ? '#ef444490' : '#22c55e90'};
+      border:1px solid ${isError ? '#ef4444' : '#22c55e'};
+      backdrop-filter:blur(12px);border-radius:10px;padding:10px 22px;
+      font-family:var(--font);font-size:14px;color:#fff;font-weight:600;
+      box-shadow:0 8px 30px #00000060;white-space:nowrap;
+      animation:slideUp .3s ease;
+    `;
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 3000);
+  }
+</script>
+</body>
+</html>
