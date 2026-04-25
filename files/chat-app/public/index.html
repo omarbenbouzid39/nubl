@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <!-- SEO Meta Tags -->
+  <title>وَصْل — دردشة عربية فورية وآمنة | تواصل مع أصدقائك الآن</title>
+  <meta name="description" content="وَصْل منصة دردشة عربية فورية وآمنة. أنشئ غرفاً خاصة وعامة، أرسل رسائل وصور وملفات في الوقت الحقيقي. سجّل مجاناً الآن." />
+  <meta name="keywords" content="دردشة عربية, شات عربي, غرف دردشة, تواصل فوري, دردشة آمنة, وصل, واتساب عربي, شات مجاني" />
+  <meta name="robots" content="index, follow" />
+  <meta name="author" content="omar benbouzid dev" />
+  <link rel="canonical" href="https://nubl-1.onrender.com/" />
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="وَصْل — دردشة عربية فورية وآمنة | تواصل مع أصدقائك الآن" />
+  <meta property="og:description" content="وَصْل منصة دردشة عربية فورية وآمنة. أنشئ غرفاً خاصة وعامة، أرسل رسائل وصور وملفات في الوقت الحقيقي. سجّل مجاناً الآن." />
+  <meta property="og:url" content="https://nubl-1.onrender.com/" />
+  <meta property="og:site_name" content="وَصْل" />
+  <meta property="og:locale" content="ar_AR" />
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="وَصْل — دردشة عربية فورية وآمنة | تواصل مع أصدقائك الآن" />
+  <meta name="twitter:description" content="وَصْل منصة دردشة عربية فورية وآمنة. أنشئ غرفاً خاصة وعامة، أرسل رسائل وصور وملفات في الوقت الحقيقي. سجّل مجاناً الآن." />
+  <!-- Google Verification -->
+  <meta name="google-site-verification" content="QGKK3I4G_T6kbsOGlT4k7MOzsUIPkgCvfBqqbsM2Mdk" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Favicon -->
+  <link rel="icon" href="/logo.png" type="image/png" />
+  <link rel="apple-touch-icon" href="/logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    /* ══ Loading Screen ══ */
+    #wasl-loader {
+      position: fixed;
+      inset: 0;
+      z-index: 99999;
+      background: #080a0e;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 28px;
+      transition: opacity 0.7s cubic-bezier(0.4,0,0.2,1),
+                  visibility 0.7s cubic-bezier(0.4,0,0.2,1);
+    }
+    #wasl-loader.fade-out {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+    #wasl-loader video {
+      width: 160px;
+      height: 160px;
+      border-radius: 50%;
+      object-fit: cover;
+      animation: loaderPulse 2s ease-in-out infinite;
+    }
+    #wasl-loader .loader-text {
+      font-family: 'Tajawal', system-ui, sans-serif;
+      font-size: 22px;
+      font-weight: 700;
+      color: #f1f5f9;
+      letter-spacing: 2px;
+      animation: loaderFadeIn 0.8s ease forwards;
+      opacity: 0;
+    }
+    #wasl-loader .loader-dots {
+      display: flex;
+      gap: 8px;
+    }
+    #wasl-loader .loader-dots span {
+      width: 6px;
+      height: 6px;
+      background: #3b82f6;
+      border-radius: 50%;
+      animation: loaderDot 1.2s ease infinite;
+    }
+    #wasl-loader .loader-dots span:nth-child(2) { animation-delay: 0.2s; }
+    #wasl-loader .loader-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes loaderPulse {
+      0%,100% { transform: scale(1);     box-shadow: 0 0 0   0 #3b82f640; }
+      50%      { transform: scale(1.04); box-shadow: 0 0 40px 8px #3b82f630; }
+    }
+    @keyframes loaderFadeIn {
+      from { opacity:0; transform:translateY(10px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    @keyframes loaderDot {
+      0%,100% { transform:translateY(0); opacity:.4; }
+      50%      { transform:translateY(-6px); opacity:1; }
+    }
+    /* Hide body overflow while loader visible */
+    body.loading { overflow: hidden; }
+  </style>
+  <!-- Google AdSense -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2326556370802000" crossorigin="anonymous"></script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "وَصْل",
+    "url": "https://nubl-1.onrender.com",
+    "description": "منصة دردشة عربية فورية وآمنة مع مدونة تقنية ومحتوى مفيد",
+    "author": {"@type": "Person", "name": "omar benbouzid dev"},
+    "inLanguage": "ar",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://nubl-1.onrender.com/blog.html?q={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
+  }
+  </script>
+</head>
+<body class="dark-mode loading">
+
+<!-- ══════════════════════════════════════ -->
+<!-- LOADING SCREEN -->
+<!-- ══════════════════════════════════════ -->
+<div id="wasl-loader">
+  <video
+    id="loader-video"
+    src="/logo.mp4"
+    autoplay
+    muted
+    playsinline
+    loop
+    preload="auto"
+  ></video>
+  <div class="loader-text">وَصْل</div>
+  <div class="loader-dots">
+    <span></span><span></span><span></span>
+  </div>
+</div>
+
+<!-- Top Navigation Bar -->
+<nav id="site-topbar" class="site-topbar">
+  <a href="/home.html" class="topbar-brand">
+    <img src="/logo.png" alt="وَصْل" class="topbar-logo" />
+    <span class="topbar-name">وَصْل</span>
+  </a>
+  <div class="topbar-links">
+    <a href="/home.html" class="topbar-link">الرئيسية</a>
+    <a href="/blog.html" class="topbar-link">المدونة</a>
+    <a href="/about.html" class="topbar-link">من نحن</a>
+    <a href="/contact.html" class="topbar-link">اتصل بنا</a>
+  </div>
+  <button class="topbar-theme-btn" id="topbar-theme-btn" title="تبديل الوضع" onclick="toggleTopbarTheme()">
+    <span id="topbar-theme-icon">☀️</span>
+  </button>
+</nav>
+
+<!-- ══════════════════════════════════════ -->
+<!-- AUTH SCREEN -->
+<!-- ══════════════════════════════════════ -->
+<div id="auth-screen" class="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="logo-icon">🔗</div>
+      <h1 class="logo-title">وَصْل</h1>
+      <p class="logo-sub">دردشة عربية • فورية • آمنة</p>
+    </div>
+
+    <!-- Tabs -->
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login" onclick="switchTab('login')">تسجيل الدخول</button>
+      <button class="auth-tab" id="tab-register" onclick="switchTab('register')">حساب جديد</button>
+    </div>
+
+    <!-- Login Form -->
+    <div id="form-login" class="login-form">
+      <input type="text" id="login-username" class="login-input" placeholder="اسم المستخدم" maxlength="20" autocomplete="off" />
+      <input type="password" id="login-password" class="login-input" placeholder="كلمة المرور" maxlength="40" />
+      <div id="login-error" class="form-error hidden"></div>
+      <button id="login-btn" class="join-btn" onclick="doLogin()">
+        <span>دخول</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </button>
+      <p class="auth-hint">حساب تجريبي: <strong>admin</strong> / <strong>admin123</strong></p>
+    </div>
+
+    <!-- Register Form -->
+    <div id="form-register" class="login-form hidden">
+      <input type="text" id="reg-username" class="login-input" placeholder="اسم المستخدم (2-20 حرف)" maxlength="20" autocomplete="off" />
+      <input type="password" id="reg-password" class="login-input" placeholder="كلمة المرور (4 أحرف على الأقل)" maxlength="40" />
+      <label class="privacy-consent-label">
+        <input type="checkbox" id="reg-consent" />
+        <span>أوافق على <a href="/privacy.html" target="_blank">سياسة الخصوصية</a> و<a href="/privacy.html#terms" target="_blank">شروط الاستخدام</a></span>
+      </label>
+      <div id="reg-error" class="form-error hidden"></div>
+      <button class="join-btn" onclick="doRegister()">
+        <span>إنشاء حساب</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!-- ROOMS LOBBY -->
+<!-- ══════════════════════════════════════ -->
+<div id="lobby-screen" class="lobby-screen hidden">
+  <div class="lobby-container">
+
+    <div class="lobby-header">
+      <div class="lobby-brand">
+        <span>🔗</span>
+        <span class="logo-title" style="font-size:22px">وَصْل</span>
+      </div>
+      <div class="lobby-user-info">
+        <div class="lobby-avatar" id="lobby-avatar">؟</div>
+        <span id="lobby-username-display"></span>
+        <span id="lobby-verified-badge" class="verified-badge-lobby" style="display:none" title="حساب موثق">
+          <svg width="13" height="13" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="8" fill="#4A90E2"/><polyline points="4.5,8.2 6.8,10.5 11.5,5.5" stroke="#FFFFF0" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+          موثق
+        </span>
+        <span id="lobby-admin-badge" class="admin-badge-lobby" style="display:none">⚡ أدمن</span>
+        <!-- Notification Bell (Lobby) -->
+        <button class="notif-bell-btn" id="lobby-notif-bell" onclick="toggleLobbyNotif()" title="الإشعارات" style="position:relative">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+          </svg>
+          <span id="lobby-notif-count" class="notif-count hidden">0</span>
+        </button>
+        <a href="/profile.html" class="profile-link-btn" title="ملفي الشخصي">👤 ملفي</a>
+        <button id="theme-toggle-lobby" class="theme-toggle" title="تبديل الوضع"><span id="theme-icon-lobby">☀️</span></button>
+        <button class="logout-btn" onclick="doLogout()" title="خروج">⏻</button>
+      </div>
+    </div>
+
+    <div class="lobby-body">
+
+      <!-- Left: Create / Join -->
+      <div class="lobby-panel">
+
+        <!-- Create Room -->
+        <div class="panel-card">
+          <h3 class="panel-title">➕ إنشاء غرفة جديدة</h3>
+          <input type="text" id="new-room-name" class="login-input" placeholder="اسم الغرفة..." maxlength="30" />
+          <label class="checkbox-label">
+            <input type="checkbox" id="new-room-persistent" />
+            <span class="checkbox-custom"></span>
+            حفظ الغرفة بعد خروج الجميع
+          </label>
+          <div id="create-room-error" class="form-error hidden"></div>
+          <button class="join-btn" onclick="createRoom()">إنشاء الغرفة</button>
+        </div>
+
+        <!-- Join by ID -->
+        <div class="panel-card">
+          <h3 class="panel-title">🔑 دخول غرفة برمز</h3>
+          <input type="text" id="join-room-id" class="login-input" placeholder="أدخل رمز الغرفة..." maxlength="20" />
+          <div id="join-room-error" class="form-error hidden"></div>
+          <button class="join-btn secondary-btn" onclick="joinRoomById()">الدخول</button>
+        </div>
+      </div>
+
+      <!-- Right: Rooms Lists -->
+      <div class="lobby-panel">
+
+        <!-- My Rooms -->
+        <div class="panel-card">
+          <h3 class="panel-title">📌 غرفي المحفوظة</h3>
+          <div id="my-rooms-list" class="rooms-list">
+            <div class="rooms-empty">لم تدخل أي غرفة بعد</div>
+          </div>
+        </div>
+
+        <!-- All Rooms -->
+        <div class="panel-card">
+          <h3 class="panel-title">🌐 الغرف المتاحة</h3>
+          <div id="all-rooms-list" class="rooms-list">
+            <div class="rooms-empty">لا توجد غرف حالياً</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!-- CHAT SCREEN -->
+<!-- ══════════════════════════════════════ -->
+<div id="chat-screen" class="chat-screen hidden">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="app-brand">
+        <img src="/logo.png" alt="وَصْل" class="nav-logo-img" style="width:28px;height:28px" />
+        <span class="brand-name">وَصْل</span>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <!-- Notification Bell -->
+        <button id="notif-bell" class="notif-bell-btn" onclick="toggleNotifPanel()" title="الإشعارات">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+          </svg>
+          <span id="notif-count" class="notif-count hidden">0</span>
+        </button>
+        <button id="theme-toggle" class="theme-toggle" title="تبديل الوضع"><span id="theme-icon">☀️</span></button>
+        <button class="theme-toggle" onclick="backToLobby()" title="العودة للغرف">🏠</button>
+      </div>
+    </div>
+
+    <!-- Notification Panel -->
+    <div id="notif-panel" class="notif-panel hidden">
+      <div class="notif-panel-header">
+        <span class="notif-panel-title">🔔 الإشعارات</span>
+        <div style="display:flex;gap:6px">
+          <button class="notif-action-btn" onclick="markAllRead()" title="تحديد الكل كمقروء">✓ الكل</button>
+          <button class="notif-action-btn" onclick="clearAllNotifs()" title="مسح الكل">🗑️</button>
+        </div>
+      </div>
+      <div id="notif-list" class="notif-list">
+        <div class="notif-empty">لا توجد إشعارات بعد</div>
+      </div>
+    </div>
+
+    <!-- Current Room -->
+    <div class="sidebar-room">
+      <div class="room-icon" id="sidebar-room-icon">💬</div>
+      <div class="room-info">
+        <div class="room-name" id="sidebar-room-name">—</div>
+        <div class="room-status" id="room-status">جاري الاتصال...</div>
+      </div>
+    </div>
+
+    <!-- Room ID copy -->
+    <div class="room-id-box">
+      <span class="room-id-label">رمز الغرفة:</span>
+      <span class="room-id-val" id="room-id-display">—</span>
+      <button class="copy-btn" onclick="copyRoomId()" title="نسخ">📋</button>
+    </div>
+
+    <!-- Users in room -->
+    <div class="sidebar-users">
+      <div class="users-label">في الغرفة</div>
+      <div id="users-list" class="users-list"></div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="my-profile">
+        <div class="my-avatar" id="my-avatar">?</div>
+        <div class="my-name" id="my-name-display">أنت</div>
+        <div class="online-dot"></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Chat Area -->
+  <main class="chat-main">
+
+    <header class="chat-header">
+      <div class="header-info">
+        <div class="header-icon">💬</div>
+        <div>
+          <div class="header-title" id="header-room-name">الغرفة</div>
+          <div class="header-subtitle" id="online-count">0 متصل</div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <div id="connection-badge" class="connection-badge offline">
+          <span class="badge-dot"></span>
+          <span class="badge-text">غير متصل</span>
+        </div>
+      </div>
+    </header>
+
+    <div id="messages" class="messages-area">
+      <div class="welcome-msg">
+        <div class="welcome-icon">🔗</div>
+        <p>مرحباً بك في وَصْل</p>
+        <small>ابدأ الدردشة الآن</small>
+      </div>
+    </div>
+
+    <div id="typing-indicator" class="typing-indicator hidden">
+      <div class="typing-bubble">
+        <span class="typing-name" id="typing-name"></span>
+        <span class="typing-dots"><span></span><span></span><span></span></span>
+      </div>
+    </div>
+
+    <div id="reply-preview" class="reply-preview hidden">
+      <div class="reply-content">
+        <span class="reply-label">↩ رد على:</span>
+        <span class="reply-text" id="reply-text-preview"></span>
+      </div>
+      <button id="cancel-reply" class="cancel-reply">✕</button>
+    </div>
+
+    <footer class="input-area">
+      <button id="emoji-btn" class="action-btn emoji-trigger" title="إيموجي">😊</button>
+      <label class="action-btn" for="file-upload" title="إرسال ملف أو صورة">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <input type="file" id="file-upload" accept="image/*,.pdf,.doc,.docx" class="hidden-input" />
+      </label>
+
+      <div id="attachment-preview" class="attachment-preview hidden">
+        <img id="preview-img" src="" alt="preview" class="hidden" />
+        <div id="file-preview-info" class="file-preview-info hidden">
+          <span class="file-icon">📄</span>
+          <span id="file-preview-name" class="file-preview-name"></span>
+        </div>
+        <button id="remove-attachment" class="remove-img">✕</button>
+      </div>
+
+      <div class="text-input-wrapper">
+        <textarea id="message-input" class="message-input" placeholder="اكتب رسالتك..." rows="1" maxlength="1000"></textarea>
+      </div>
+
+      <button id="send-btn" class="send-btn" title="إرسال">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+    </footer>
+
+    <div id="emoji-picker" class="emoji-picker hidden">
+      <div class="emoji-search-wrap">
+        <input type="text" id="emoji-search" class="emoji-search" placeholder="ابحث عن إيموجي..." />
+      </div>
+      <div class="emoji-categories">
+        <button class="emoji-cat active" data-cat="smileys">😊</button>
+        <button class="emoji-cat" data-cat="gestures">👋</button>
+        <button class="emoji-cat" data-cat="hearts">❤️</button>
+        <button class="emoji-cat" data-cat="objects">🎉</button>
+        <button class="emoji-cat" data-cat="nature">🌿</button>
+        <button class="emoji-cat" data-cat="food">🍕</button>
+      </div>
+      <div class="emoji-grid" id="emoji-grid"></div>
+    </div>
+  </main>
+</div>
+
+<!-- Image Modal -->
+<div id="img-modal" class="img-modal hidden">
+  <div class="modal-backdrop" id="modal-backdrop"></div>
+  <div class="modal-content">
+    <button class="modal-close" id="modal-close">✕</button>
+    <img id="modal-img" src="" alt="full image" />
+  </div>
+</div>
+
+<!-- Context Menu -->
+<div id="context-menu" class="context-menu hidden">
+  <button class="ctx-item" id="ctx-reply">↩ رد</button>
+  <button class="ctx-item" id="ctx-react">❤️ تفاعل</button>
+  <button class="ctx-item ctx-danger" id="ctx-delete">🗑️ حذف</button>
+</div>
+
+<!-- Reaction Picker -->
+<div id="reaction-picker" class="reaction-picker hidden">
+  <span class="react-emoji" data-emoji="❤️">❤️</span>
+  <span class="react-emoji" data-emoji="😂">😂</span>
+  <span class="react-emoji" data-emoji="😮">😮</span>
+  <span class="react-emoji" data-emoji="😢">😢</span>
+  <span class="react-emoji" data-emoji="👍">👍</span>
+  <span class="react-emoji" data-emoji="🔥">🔥</span>
+</div>
+
+<!-- Footer -->
+<footer class="app-footer" id="app-footer">
+  <span>by omar benbouzid dev</span>
+</footer>
+
+<!-- Cookie Consent Banner -->
+<div id="wasl-cookie-bar" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#111318;border-top:1px solid #1e2535;padding:14px 20px;display:none;align-items:center;justify-content:space-between;gap:12px;z-index:8000;flex-wrap:wrap">
+  <p style="font-size:13px;color:#8892a4;flex:1;min-width:220px;margin:0">
+    نستخدم الكوكيز لتحسين تجربتك. بالاستمرار في استخدام الموقع، أنت توافق على
+    <a href="/privacy.html#cookies" style="color:#3b82f6">سياسة الكوكيز</a>.
+  </p>
+  <div style="display:flex;gap:8px;flex-shrink:0">
+    <button onclick="document.getElementById('wasl-cookie-bar').style.display='none';localStorage.setItem('wasl_cookie','declined')" style="background:#1e2130;border:1px solid #1e2535;border-radius:8px;color:#8892a4;cursor:pointer;font-family:inherit;font-size:13px;padding:7px 16px">رفض</button>
+    <button onclick="document.getElementById('wasl-cookie-bar').style.display='none';localStorage.setItem('wasl_cookie','accepted')" style="background:linear-gradient(135deg,#3b82f6,#8b5cf6);border:none;border-radius:8px;color:#fff;cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;padding:7px 18px">✓ قبول</button>
+  </div>
+</div>
+<script>
+  if (!localStorage.getItem('wasl_cookie')) {
+    setTimeout(() => { const b = document.getElementById('wasl-cookie-bar'); if(b) b.style.display='flex'; }, 2000);
+  }
+</script>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="script.js"></script>
+
+<!-- ══ Loading Screen Logic ══ -->
+<script>
+(function() {
+  const LOADER_KEY = 'wasl_loaded';
+  const loader     = document.getElementById('wasl-loader');
+  const video      = document.getElementById('loader-video');
+
+  // If already visited this session → skip loader instantly
+  if (sessionStorage.getItem(LOADER_KEY)) {
+    loader.style.display = 'none';
+    document.body.classList.remove('loading');
+    return;
+  }
+
+  function hideLoader() {
+    sessionStorage.setItem(LOADER_KEY, '1');
+    loader.classList.add('fade-out');
+    document.body.classList.remove('loading');
+    // Remove from DOM after animation
+    setTimeout(() => { if (loader) loader.remove(); }, 800);
+  }
+
+  // Hide after video plays once (ended) OR after 3.5s max
+  const maxTimer = setTimeout(hideLoader, 3500);
+
+  if (video) {
+    video.addEventListener('ended', () => {
+      clearTimeout(maxTimer);
+      // Small pause so last frame is visible
+      setTimeout(hideLoader, 200);
+    });
+
+    // Fallback: if video fails to load
+    video.addEventListener('error', () => {
+      clearTimeout(maxTimer);
+      setTimeout(hideLoader, 800);
+    });
+
+    // If video is very short and loops, hide after first loop
+    video.loop = false; // override so 'ended' fires
+  }
+
+  // Also hide on full page load in case video already ended
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      if (!sessionStorage.getItem(LOADER_KEY)) hideLoader();
+    }, 500);
+  });
+})();
+</script>
+</body>
+</html>
