@@ -112,6 +112,49 @@
     }
   }
   </script>
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#3b82f6" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="وَصْل" />
+  <meta name="application-name" content="وَصْل" />
+</head>
+<body class="dark-mode loading">
+ 
+<!-- ══════════════════════════════════════ -->
+<!-- LOADING SCREEN -->
+<!-- ══════════════════════════════════════ -->
+<div id="wasl-loader">
+  <video
+    id="loader-video"
+    src="/logo.mp4"
+    autoplay
+    muted
+    playsinline
+    loop
+    preload="auto"
+  ></video>
+  <div class="loader-text">وَصْل</div>
+  <div class="loader-dots">
+    <span></span><span></span><span></span>
+  </div>
+</div>
+ 
+<!-- Shared Navbar / Footer / PWA / Cookie Banner -->
+<script src="shared.js"></script>
+ 
+<!-- ══════════════════════════════════════ -->
+<!-- AUTH SCREEN -->
+<!-- ══════════════════════════════════════ -->
+<div id="auth-screen" class="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="logo-icon">🔗</div>
+      <h1 class="logo-title">وَصْل</h1>
+      <p class="logo-sub">دردشة عربية • فورية • آمنة</p>
+    </div>
 </head>
 <body class="dark-mode loading">
 
