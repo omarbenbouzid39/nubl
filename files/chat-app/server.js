@@ -6,14 +6,10 @@ const multer    = require('multer');
 const path      = require('path');
 const fs        = require('fs');
 const mongoose  = require('mongoose');
-const bcrypt    = require('bcryptjs');   // ✅ FIX 1: تشفير كلمات المرور
-const jwt       = require('jsonwebtoken'); // ✅ FIX 3: مصادقة حقيقية بـ JWT
 
 const app    = express();
 const server = http.createServer(app);
 const io     = socketIo(server, { cors: { origin: '*' }, maxHttpBufferSize: 20e6 });
-
-const JWT_SECRET = process.env.JWT_SECRET || 'CHANGE_THIS_SECRET_IN_ENV'; // ✅ ضعه في .env
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -34,9 +30,10 @@ mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/wasl')
 // ─── Mongoose Models ───
 // ══════════════════════════════════════════
 
+// ── User Model ──
 const UserSchema = new mongoose.Schema({
   username:  { type: String, required: true, unique: true, trim: true, minlength: 2, maxlength: 20 },
-  password:  { type: String, required: true }, // ✅ سيُخزَّن مشفراً الآن
+  password:  { type: String, required: true },
   verified:  { type: Boolean, default: false },
   isAdmin:   { type: Boolean, default: false },
   avatar:    { type: String, default: '', maxlength: 500 },
@@ -47,6 +44,7 @@ const UserSchema = new mongoose.Schema({
 
 const UserModel = mongoose.model('User', UserSchema);
 
+// ── Room Model ──
 const RoomSchema = new mongoose.Schema({
   id:          { type: String, required: true, unique: true },
   name:        { type: String, required: true, trim: true, maxlength: 30 },
@@ -62,6 +60,7 @@ const RoomSchema = new mongoose.Schema({
 
 const RoomModel = mongoose.model('Room', RoomSchema);
 
+// ── Message Model ──
 const MessageSchema = new mongoose.Schema({
   id:        { type: String, required: true, unique: true },
   roomId:    { type: String, required: true, index: true },
@@ -85,88 +84,50 @@ const MessageSchema = new mongoose.Schema({
 const MessageModel = mongoose.model('Message', MessageSchema);
 
 // ══════════════════════════════════════════
-// ─── In-Memory Cache ───
+// ─── In-Memory Room Cache (users only) ───
 // ══════════════════════════════════════════
-const rooms         = {};
+// rooms cache: { roomId → { ...roomData, users: { socketId: username } } }
+const rooms        = {};
 const activeSockets = {};
-const MAX_ROOMS     = 20;
-const MAX_MSG_LEN   = 1000;
-const MAX_MSGS_HISTORY = 100;
+const MAX_ROOMS    = 20;
+const MAX_MSG_LEN  = 1000;
+const MAX_MSGS_HISTORY = 100; // messages to send on join
 
-// ══════════════════════════════════════════
-// ─── JWT Middleware ───
-// ✅ FIX 3: كل route محمية تتحقق من الـ token
-// ══════════════════════════════════════════
-function authMiddleware(req, res, next) {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1]; // Bearer <token>
-  if (!token) return res.status(401).json({ error: 'يجب تسجيل الدخول أولاً' });
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = decoded; // { username, isAdmin }
-    next();
-  } catch {
-    return res.status(401).json({ error: 'جلسة منتهية، أعد تسجيل الدخول' });
-  }
-}
-
-// ✅ FIX 2 & 4: middleware خاص بالأدمن
-function adminMiddleware(req, res, next) {
-  authMiddleware(req, res, () => {
-    if (!req.user?.isAdmin)
-      return res.status(403).json({ error: 'غير مصرح — فقط الأدمن' });
-    next();
-  });
-}
-
-// ══════════════════════════════════════════
-// ─── Seed Admin ───
-// ══════════════════════════════════════════
+// ── Seed admin user if not exists ──
 async function seedAdmin() {
   try {
     const exists = await UserModel.findOne({ username: 'admin' });
     if (!exists) {
-      // ✅ FIX 6: كلمة المرور الافتراضية من .env وليست hardcoded
-      const defaultAdminPassword = process.env.ADMIN_PASSWORD;
-      if (!defaultAdminPassword) {
-        console.error('❌ ADMIN_PASSWORD غير موجود في .env — لن يُنشأ حساب الأدمن');
-        return;
-      }
-      const hashed = await bcrypt.hash(defaultAdminPassword, 12);
       await UserModel.create({
-        username: 'admin', password: hashed,
+        username: 'admin', password: 'admin123',
         verified: true, isAdmin: true,
         bio: 'مؤسس المنصة ومديرها 🔗'
       });
-      console.log('✅ Admin user created (كلمة المرور من ADMIN_PASSWORD في .env)');
+      console.log('✅ Admin user created');
     }
   } catch(e) { console.error('Admin seed error:', e.message); }
 }
 
+// ── Load ALL rooms into memory on startup ──
 async function loadPersistentRooms() {
   try {
     const allRooms = await RoomModel.find({});
-    allRooms.forEach(r => { rooms[r.id] = { ...r.toObject(), users: {} }; });
-    console.log(`📂 Loaded ${allRooms.length} rooms`);
+    allRooms.forEach(r => {
+      rooms[r.id] = { ...r.toObject(), users: {} };
+    });
+    console.log(`📂 Loaded ${allRooms.length} rooms (${allRooms.filter(r=>r.persistent).length} persistent)`);
   } catch(e) { console.error('Load rooms error:', e.message); }
 }
 
+// ── Run init ──
 mongoose.connection.once('open', async () => {
   await seedAdmin();
   await loadPersistentRooms();
 });
 
 // ══════════════════════════════════════════
-// ─── Multer (Upload) ───
+// ─── Multer ───
 // ══════════════════════════════════════════
-const ALLOWED_MIME_TYPES = [
-  'image/jpeg', 'image/png', 'image/gif', 'image/webp',
-  'application/pdf',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-];
-const ALLOWED_EXTENSIONS = /\.(jpeg|jpg|png|gif|webp|pdf|doc|docx)$/i;
-
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, './uploads/'),
   filename:    (req, file, cb) => {
@@ -174,24 +135,16 @@ const storage = multer.diskStorage({
     cb(null, u + path.extname(file.originalname));
   }
 });
-
 const upload = multer({
   storage,
   limits: { fileSize: 20 * 1024 * 1024 },
-  // ✅ FIX 5: فحص MIME الحقيقي + الامتداد معاً
   fileFilter: (req, file, cb) => {
-    const extOk  = ALLOWED_EXTENSIONS.test(path.extname(file.originalname).toLowerCase());
-    const mimeOk = ALLOWED_MIME_TYPES.includes(file.mimetype);
-    if (extOk && mimeOk) {
-      cb(null, true);
-    } else {
-      cb(new Error('نوع الملف غير مسموح به'));
-    }
+    const ok = /jpeg|jpg|png|gif|webp|pdf|doc|docx/.test(path.extname(file.originalname).toLowerCase());
+    ok ? cb(null, true) : cb(new Error('File type not allowed'));
   }
 });
 
-// ✅ رفع الملفات يتطلب مصادقة
-app.post('/upload', authMiddleware, upload.single('file'), (req, res) => {
+app.post('/upload', upload.single('file'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file' });
   res.json({ url: `/uploads/${req.file.filename}`, name: req.file.originalname });
 });
@@ -206,40 +159,26 @@ app.post('/api/register', async (req, res) => {
     const { username, password } = req.body;
     if (!username || !password) return res.status(400).json({ error: 'بيانات ناقصة' });
     if (username.length < 2 || username.length > 20) return res.status(400).json({ error: 'الاسم بين 2 و 20 حرف' });
-    if (password.length < 6) return res.status(400).json({ error: 'كلمة المرور 6 أحرف على الأقل' }); // ✅ رفعنا الحد الأدنى
+    if (password.length < 4) return res.status(400).json({ error: 'كلمة المرور 4 أحرف على الأقل' });
 
     const exists = await UserModel.findOne({ username });
     if (exists) return res.status(400).json({ error: 'الاسم مستخدم بالفعل' });
 
-    // ✅ FIX 1: تشفير كلمة المرور قبل الحفظ
-    const hashedPassword = await bcrypt.hash(password, 12);
-    await UserModel.create({ username, password: hashedPassword });
-
+    await UserModel.create({ username, password });
     console.log(`✅ Registered: ${username}`);
     res.json({ ok: true, username });
   } catch(e) { res.status(500).json({ error: 'خطأ في السيرفر' }); }
 });
 
-// Login — يُعيد JWT token
+// Login
 app.post('/api/login', async (req, res) => {
   try {
     const { username, password } = req.body;
     const user = await UserModel.findOne({ username });
-
-    // ✅ FIX 1: مقارنة آمنة باستخدام bcrypt
-    const passwordMatch = user && await bcrypt.compare(password, user.password);
-    if (!user || !passwordMatch)
+    if (!user || user.password !== password)
       return res.status(401).json({ error: 'اسم المستخدم أو كلمة المرور خاطئة' });
-
-    // ✅ FIX 3: إنشاء JWT token يُرسل للعميل
-    const token = jwt.sign(
-      { username: user.username, isAdmin: !!user.isAdmin },
-      JWT_SECRET,
-      { expiresIn: '7d' }
-    );
-
     res.json({
-      ok: true, username, token, // ← العميل يحفظه ويرسله مع كل طلب
+      ok: true, username,
       myRooms:  user.myRooms || [],
       verified: user.verified,
       avatar:   user.avatar,
@@ -258,11 +197,10 @@ app.get('/api/profile/:username', async (req, res) => {
   } catch(e) { res.status(500).json({ error: 'خطأ في السيرفر' }); }
 });
 
-// Update profile — ✅ يتطلب مصادقة
-app.post('/api/profile/update', authMiddleware, async (req, res) => {
+// Update profile
+app.post('/api/profile/update', async (req, res) => {
   try {
-    const { avatar, bio } = req.body;
-    const username = req.user.username; // ✅ من الـ token وليس من الـ body
+    const { username, avatar, bio } = req.body;
     const user = await UserModel.findOne({ username });
     if (!user) return res.status(404).json({ error: 'المستخدم غير موجود' });
     if (avatar !== undefined) user.avatar = (avatar || '').substring(0, 500);
@@ -273,10 +211,10 @@ app.post('/api/profile/update', authMiddleware, async (req, res) => {
   } catch(e) { res.status(500).json({ error: 'خطأ في السيرفر' }); }
 });
 
-// My rooms — ✅ يتطلب مصادقة
-app.post('/api/my-rooms', authMiddleware, async (req, res) => {
+// My rooms
+app.post('/api/my-rooms', async (req, res) => {
   try {
-    const username = req.user.username; // ✅ من الـ token
+    const { username } = req.body;
     const user = await UserModel.findOne({ username });
     if (!user) return res.status(401).json({ error: 'غير مصرح' });
     const list = (user.myRooms || []).map(id => {
@@ -288,23 +226,22 @@ app.post('/api/my-rooms', authMiddleware, async (req, res) => {
   } catch(e) { res.status(500).json({ error: 'خطأ في السيرفر' }); }
 });
 
-// Remove room from my list — ✅ يتطلب مصادقة
-app.post('/api/my-rooms/remove', authMiddleware, async (req, res) => {
+// Remove room from my list
+app.post('/api/my-rooms/remove', async (req, res) => {
   try {
-    const username = req.user.username;
-    const { roomId } = req.body;
+    const { username, roomId } = req.body;
     await UserModel.updateOne({ username }, { $pull: { myRooms: roomId } });
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: 'خطأ في السيرفر' }); }
 });
 
-// Rooms list
+// ─── Rooms REST API ───
 app.get('/api/rooms', (req, res) => {
   res.json({ rooms: getRoomsList() });
 });
 
-// ─── Admin API ─── ✅ FIX 2 & 4: كل الـ routes محمية بـ adminMiddleware
-app.get('/api/admin/stats', adminMiddleware, async (req, res) => {
+// ─── Admin API ───
+app.get('/api/admin/stats', async (req, res) => {
   try {
     const roomList = await Promise.all(
       Object.values(rooms).map(async r => {
@@ -333,11 +270,12 @@ app.get('/api/admin/stats', adminMiddleware, async (req, res) => {
   } catch(e) { res.status(500).json({ error: 'خطأ في السيرفر' }); }
 });
 
-// Admin: Verify / Unverify — ✅ adminMiddleware يتحقق من الـ token
-app.post('/api/admin/verify', adminMiddleware, async (req, res) => {
+// Admin: Verify / Unverify
+app.post('/api/admin/verify', async (req, res) => {
   try {
-    const { targetUsername, action } = req.body;
-    // ✅ req.user.username من الـ token (لا يمكن تزويره)
+    const { adminUsername, targetUsername, action } = req.body;
+    const admin = await UserModel.findOne({ username: adminUsername });
+    if (!admin?.isAdmin) return res.status(403).json({ error: 'غير مصرح — فقط الأدمن' });
     const target = await UserModel.findOneAndUpdate(
       { username: targetUsername },
       { verified: action === 'verify' },
@@ -349,8 +287,8 @@ app.post('/api/admin/verify', adminMiddleware, async (req, res) => {
   } catch(e) { res.status(500).json({ error: 'خطأ في السيرفر' }); }
 });
 
-// Admin: Delete room — ✅ adminMiddleware
-app.delete('/api/admin/rooms/:roomId', adminMiddleware, async (req, res) => {
+// Admin: Delete room
+app.delete('/api/admin/rooms/:roomId', async (req, res) => {
   try {
     const { roomId } = req.params;
     if (!rooms[roomId]) return res.status(404).json({ error: 'الغرفة غير موجودة' });
@@ -369,37 +307,26 @@ app.delete('/api/admin/rooms/:roomId', adminMiddleware, async (req, res) => {
 
 app.get('/admin',   (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
 app.get('/profile', (req, res) => res.sendFile(path.join(__dirname, 'public', 'profile.html')));
+app.get('/chat',    (req, res) => res.sendFile(path.join(__dirname, 'public', 'chat.html')));
 
 // ══════════════════════════════════════════
 // ─── Socket.io ───
-// ✅ FIX 3: التحقق من الـ token عند الاتصال
 // ══════════════════════════════════════════
-io.use((socket, next) => {
-  const token = socket.handshake.auth?.token;
-  if (!token) return next(new Error('مطلوب تسجيل الدخول'));
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    socket.username = decoded.username;
-    socket.isAdmin  = decoded.isAdmin;
-    next();
-  } catch {
-    next(new Error('جلسة منتهية'));
-  }
-});
-
 io.on('connection', socket => {
-  console.log(`🔌 Connected: ${socket.id} (${socket.username})`);
+  console.log(`🔌 Connected: ${socket.id}`);
 
+  // ─── Join App ───
   socket.on('app_join', async ({ username }) => {
-    // ✅ نستخدم username من الـ token وليس من الـ event
-    activeSockets[socket.id] = { username: socket.username, roomId: null };
+    socket.username = username;
+    activeSockets[socket.id] = { username, roomId: null };
     socket.emit('rooms_list', getRoomsList());
     try {
-      const u = await UserModel.findOne({ username: socket.username }, '-password');
+      const u = await UserModel.findOne({ username }, '-password');
       if (u) socket.emit('my_profile', { verified: !!u.verified, avatar: u.avatar || '', bio: u.bio || '', isAdmin: !!u.isAdmin });
     } catch(_) {}
   });
 
+  // ─── Create Room ───
   socket.on('create_room', async ({ name, persistent, isPrivate, password, avatar, description, maxUsers }, cb) => {
     if (Object.keys(rooms).length >= MAX_ROOMS) return cb?.({ error: 'وصلت للحد الأقصى من الغرف' });
     if (!name || name.trim().length < 2) return cb?.({ error: 'اسم الغرفة قصير جداً' });
@@ -418,18 +345,21 @@ io.on('connection', socket => {
         createdAt:   new Date()
       };
       rooms[id] = room;
+      // Save to MongoDB
       await RoomModel.create({ ...room, users: undefined });
       io.emit('rooms_updated', getRoomsList());
+      console.log(`🏠 Room created: "${name}" (${id})`);
       cb?.({ ok: true, roomId: id });
     } catch(e) { cb?.({ error: 'فشل إنشاء الغرفة' }); }
   });
 
+  // ─── Edit Room ───
   socket.on('edit_room', async ({ roomId, name, description, avatar, persistent, isPrivate, password, maxUsers }, cb) => {
     const room = rooms[roomId];
     if (!room) return cb?.({ error: 'الغرفة غير موجودة' });
     try {
-      // ✅ socket.isAdmin من الـ JWT وليس من DB query
-      if (room.owner !== socket.username && !socket.isAdmin)
+      const user = await UserModel.findOne({ username: socket.username });
+      if (room.owner !== socket.username && !user?.isAdmin)
         return cb?.({ error: 'فقط مالك الغرفة يمكنه التعديل' });
 
       if (name && name.trim().length >= 2) room.name = name.trim();
@@ -458,13 +388,17 @@ io.on('connection', socket => {
     } catch(e) { cb?.({ error: 'فشل تعديل الغرفة' }); }
   });
 
-  socket.on('join_room', async ({ roomId, password }, cb) => {
-    const username = socket.username; // ✅ من الـ JWT دائماً
+  // ─── Join Room ───
+  socket.on('join_room', async ({ roomId, username, password }, cb) => {
+    // Try memory first, then MongoDB
     let room = rooms[roomId];
     if (!room) {
       try {
         const dbRoom = await RoomModel.findOne({ id: roomId }).lean();
-        if (dbRoom) { rooms[roomId] = { ...dbRoom, users: {} }; room = rooms[roomId]; }
+        if (dbRoom) {
+          rooms[roomId] = { ...dbRoom, users: {} };
+          room = rooms[roomId];
+        }
       } catch(_) {}
     }
     if (!room) return cb?.({ error: 'الغرفة غير موجودة' });
@@ -472,27 +406,39 @@ io.on('connection', socket => {
       return cb?.({ error: `الغرفة ممتلئة (${room.maxUsers} مستخدم كحد أقصى)` });
 
     if (room.isPrivate && room.password) {
-      const isOwner = username === room.owner;
-      if (!isOwner && !socket.isAdmin && password !== room.password)
-        return cb?.({ error: 'كلمة المرور غير صحيحة' });
+      try {
+        const u = await UserModel.findOne({ username: username || socket.username });
+        const isOwner = (username || socket.username) === room.owner;
+        if (!isOwner && !u?.isAdmin && password !== room.password)
+          return cb?.({ error: 'كلمة المرور غير صحيحة' });
+      } catch(_) { return cb?.({ error: 'خطأ في التحقق' }); }
     }
 
     const prev = activeSockets[socket.id]?.roomId;
     if (prev && prev !== roomId) leaveRoom(socket, prev);
 
     socket.join(roomId);
-    room.users[socket.id] = username;
+    room.users[socket.id] = username || socket.username;
     if (activeSockets[socket.id]) activeSockets[socket.id].roomId = roomId;
 
-    try { await UserModel.updateOne({ username }, { $addToSet: { myRooms: roomId } }); } catch(_) {}
+    // Save room to user's myRooms in DB
+    try {
+      await UserModel.updateOne({ username: username || socket.username }, { $addToSet: { myRooms: roomId } });
+    } catch(_) {}
 
+    // Load messages from MongoDB
     try {
       const messages = await MessageModel
         .find({ roomId, deleted: { $ne: true } })
-        .sort({ timestamp: 1 }).limit(MAX_MSGS_HISTORY).lean();
+        .sort({ timestamp: 1 })
+        .limit(MAX_MSGS_HISTORY)
+        .lean();
       socket.emit('room_history', { roomId, messages });
-    } catch(_) { socket.emit('room_history', { roomId, messages: [] }); }
+    } catch(_) {
+      socket.emit('room_history', { roomId, messages: [] });
+    }
 
+    // Notify room users
     const usersWithInfo = await buildUsersInfo(room.users);
     io.to(roomId).emit('room_user_joined', { roomId, username: room.users[socket.id], users: usersWithInfo, count: Object.keys(room.users).length });
     io.emit('rooms_updated', getRoomsList());
@@ -504,8 +450,10 @@ io.on('connection', socket => {
     }});
   });
 
+  // ─── Leave Room ───
   socket.on('leave_room', ({ roomId }) => leaveRoom(socket, roomId));
 
+  // ─── Text Message ───
   socket.on('message', async data => {
     const roomId = data.roomId || activeSockets[socket.id]?.roomId;
     const room   = rooms[roomId];
@@ -519,6 +467,7 @@ io.on('connection', socket => {
     } catch(e) { console.error('Message error:', e.message); }
   });
 
+  // ─── Image Message ───
   socket.on('image_message', async data => {
     const roomId = data.roomId || activeSockets[socket.id]?.roomId;
     const room   = rooms[roomId];
@@ -530,6 +479,7 @@ io.on('connection', socket => {
     } catch(e) {}
   });
 
+  // ─── File Message ───
   socket.on('file_message', async data => {
     const roomId = data.roomId || activeSockets[socket.id]?.roomId;
     const room   = rooms[roomId];
@@ -541,14 +491,11 @@ io.on('connection', socket => {
     } catch(e) {}
   });
 
+  // ─── Delete Message ───
   socket.on('delete_message', async ({ msgId, roomId: rid }) => {
     const roomId = rid || activeSockets[socket.id]?.roomId;
     try {
-      // ✅ التحقق: فقط صاحب الرسالة أو الأدمن يستطيع الحذف
-      const query = socket.isAdmin
-        ? { id: msgId }
-        : { id: msgId, username: socket.username };
-      const msg = await MessageModel.findOne(query);
+      const msg = await MessageModel.findOne({ id: msgId, socketId: socket.id });
       if (!msg) return;
       msg.deleted = true;
       msg.text = '🗑️ تم حذف الرسالة';
@@ -557,13 +504,15 @@ io.on('connection', socket => {
     } catch(_) {}
   });
 
-  socket.on('read', async ({ msgId }) => {
+  // ─── Read Receipt ───
+  socket.on('read', async ({ msgId, roomId: rid }) => {
     try {
       const msg = await MessageModel.findOne({ id: msgId }).lean();
       if (msg) io.to(msg.socketId).emit('message_read', { msgId });
     } catch(_) {}
   });
 
+  // ─── Reaction ───
   socket.on('react', async ({ msgId, emoji, roomId: rid }) => {
     const roomId = rid || activeSockets[socket.id]?.roomId;
     try {
@@ -579,11 +528,13 @@ io.on('connection', socket => {
     } catch(_) {}
   });
 
+  // ─── Typing ───
   socket.on('typing', ({ isTyping, roomId: rid }) => {
     const roomId = rid || activeSockets[socket.id]?.roomId;
     if (roomId) socket.to(roomId).emit('typing', { username: socket.username, isTyping });
   });
 
+  // ─── Disconnect ───
   socket.on('disconnect', () => {
     const info = activeSockets[socket.id];
     if (info?.roomId) leaveRoom(socket, info.roomId);
@@ -606,6 +557,7 @@ async function leaveRoom(socket, roomId) {
   const usersWithInfo = await buildUsersInfo(room.users);
   io.to(roomId).emit('room_user_left', { roomId, username, users: usersWithInfo, count: Object.keys(room.users).length });
 
+  // Delete non-persistent empty rooms
   if (!room.persistent && Object.keys(room.users).length === 0) {
     delete rooms[roomId];
     await RoomModel.deleteOne({ id: roomId }).catch(() => {});
@@ -670,6 +622,7 @@ function genId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
 
+// ─── Start ───
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`\n🚀 وَصْل Chat Server → http://localhost:${PORT}`);

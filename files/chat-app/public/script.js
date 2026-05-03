@@ -380,18 +380,14 @@ window.selectEditRoomType = function(val) {
 // ══════════════════════════════════════════
 // ─── Enter Room (join and switch to chat) ───
 // ══════════════════════════════════════════
-// Current room full data
+// ─── Enter Room → redirect to chat.html ───
 let currentRoomData = {};
 
 window.enterRoom = function(roomId, roomName, password) {
-  socket.emit('join_room', { roomId, username: myUsername, password: password || '' }, (res) => {
-    if (res?.error) {
-      showError(joinRoomErr, res.error);
-      showError(createRoomErr, res.error);
-      return;
-    }
-    currentRoomId   = roomId;
-    currentRoomData = res.room || {};
+  // Save room session then navigate to chat page
+  sessionStorage.setItem('wasl_room', JSON.stringify({ roomId, roomName, password: password || '' }));
+  window.location.href = '/chat.html';
+};
     currentRoomName = currentRoomData.name || roomName;
 
     // ── Save room session for refresh recovery ──
