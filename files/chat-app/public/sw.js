@@ -12,6 +12,7 @@ const OFFLINE_PAGE  = '/offline.html';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
+  '/chat.html',
   '/home.html',
   '/blog.html',
   '/about.html',
@@ -19,6 +20,8 @@ const STATIC_ASSETS = [
   '/privacy.html',
   '/style.css',
   '/script.js',
+  '/lobby.js',
+  '/chat.js',
   '/shared.js',
   '/shared-pages.css',
   '/logo.png',
