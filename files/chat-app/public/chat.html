@@ -127,12 +127,43 @@
         </div>
       </div>
       <div class="header-actions">
+        <!-- DND -->
+        <button id="dnd-btn" class="header-icon-btn" onclick="toggleDND()" title="وضع عدم الإزعاج">🔔</button>
+        <!-- Search -->
+        <button class="header-icon-btn" onclick="toggleSearch()" title="بحث في الرسائل (Ctrl+F)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </button>
+        <!-- Pinned -->
+        <button class="header-icon-btn" onclick="togglePinned()" title="الرسائل المثبتة (Ctrl+P)">📌</button>
+        <!-- Share -->
+        <button class="header-icon-btn" onclick="shareRoom()" title="مشاركة رابط الغرفة">🔗</button>
+        <!-- Export -->
+        <button class="header-icon-btn" onclick="exportChat()" title="تصدير المحادثة">💾</button>
         <div id="connection-badge" class="connection-badge offline">
           <span class="badge-dot"></span>
           <span class="badge-text">غير متصل</span>
         </div>
       </div>
     </header>
+
+    <!-- Search Bar -->
+    <div id="search-bar" class="search-bar hidden">
+      <div class="search-input-wrap">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;color:var(--text-muted)"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="search-input" class="search-input-field" placeholder="ابحث في الرسائل..." />
+        <button class="search-close-btn" onclick="toggleSearch()">✕</button>
+      </div>
+      <div id="search-results" class="search-results"></div>
+    </div>
+
+    <!-- Pinned Messages Panel -->
+    <div id="pinned-panel" class="pinned-panel hidden">
+      <div class="pinned-panel-header">
+        <span>📌 الرسائل المثبتة</span>
+        <button class="search-close-btn" onclick="togglePinned()">✕</button>
+      </div>
+      <div id="pinned-list" class="pinned-list"></div>
+    </div>
 
     <div id="messages" class="messages-area">
       <div class="welcome-msg">
@@ -208,6 +239,7 @@
 <div id="context-menu" class="context-menu hidden">
   <button class="ctx-item" id="ctx-reply">↩ رد</button>
   <button class="ctx-item" id="ctx-react">❤️ تفاعل</button>
+  <button class="ctx-item" id="ctx-pin">📌 تثبيت</button>
   <button class="ctx-item ctx-danger" id="ctx-delete">🗑️ حذف</button>
 </div>
 

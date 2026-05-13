@@ -35,6 +35,7 @@ const cancelReply      = document.getElementById('cancel-reply');
 const contextMenu      = document.getElementById('context-menu');
 const ctxReply         = document.getElementById('ctx-reply');
 const ctxReact         = document.getElementById('ctx-react');
+const ctxPin           = document.getElementById('ctx-pin');
 const ctxDelete        = document.getElementById('ctx-delete');
 const reactionPicker   = document.getElementById('reaction-picker');
 
@@ -260,6 +261,21 @@ function initChatSocket(roomId, roomName, password) {
     if (roomId !== currentRoomId) return;
     addSystemMessage('⚠️ تم حذف هذه الغرفة');
     setTimeout(() => backToLobby(), 2000);
+  });
+
+  // ── Pin/Unpin ──
+  socket.on('message_pinned', ({ msgId, pinned, pinnedBy }) => {
+    const el = document.querySelector(`[data-msg-id="${msgId}"]`);
+    if (el) {
+      el.querySelector('.pin-badge')?.remove();
+      if (pinned) {
+        const badge = document.createElement('div');
+        badge.className = 'pin-badge';
+        badge.innerHTML = `📌 ثبّتها ${escapeHtml(pinnedBy)}`;
+        el.insertBefore(badge, el.firstChild);
+      }
+    }
+    addSystemMessage(pinned ? `📌 ${pinnedBy} ثبّت رسالة` : `❌ ${pinnedBy} ألغى تثبيت رسالة`);
   });
 
   socket.on('profile_updated', (data) => {
@@ -619,6 +635,7 @@ messagesArea?.addEventListener('contextmenu', e => {
 
 ctxReply?.addEventListener('click',  () => { if (contextMsgId) triggerReply(contextMsgId); contextMenu?.classList.add('hidden'); });
 ctxReact?.addEventListener('click',  e  => { openReactPicker({ target: e.target, stopPropagation: ()=>{} }, contextMsgId); contextMenu?.classList.add('hidden'); });
+ctxPin?.addEventListener('click',    () => { if (contextMsgId) pinMsg(contextMsgId); contextMenu?.classList.add('hidden'); });
 ctxDelete?.addEventListener('click', () => { if (contextMsgId) deleteMsg(contextMsgId); contextMenu?.classList.add('hidden'); });
 
 document.addEventListener('click', e => {
@@ -930,3 +947,209 @@ function getFileIcon(name='') {
   if (['doc','docx'].includes(ext)) return '📘';
   return '📄';
 }
+
+// ══════════════════════════════════════════
+// ─── SEARCH IN MESSAGES ───
+// ══════════════════════════════════════════
+let searchVisible = false;
+
+window.toggleSearch = function() {
+  searchVisible = !searchVisible;
+  const bar = document.getElementById('search-bar');
+  if (!bar) return;
+  bar.classList.toggle('hidden', !searchVisible);
+  if (searchVisible) document.getElementById('search-input')?.focus();
+  else clearSearch();
+};
+
+window.doSearch = async function() {
+  const q = document.getElementById('search-input')?.value.trim();
+  if (!q || q.length < 2) return;
+  try {
+    const res  = await fetch(`/api/rooms/${currentRoomId}/search?q=${encodeURIComponent(q)}`);
+    const data = await res.json();
+    renderSearchResults(data.results || []);
+  } catch { renderSearchResults([]); }
+};
+
+function renderSearchResults(results) {
+  const container = document.getElementById('search-results');
+  if (!container) return;
+  container.innerHTML = '';
+  if (!results.length) {
+    container.innerHTML = '<div class="search-empty">لا توجد نتائج</div>';
+    return;
+  }
+  results.forEach(msg => {
+    const item = document.createElement('div');
+    item.className = 'search-result-item';
+    item.innerHTML = `
+      <div class="search-result-user">${escapeHtml(msg.username)} <span class="search-result-time">${formatTime(msg.timestamp)}</span></div>
+      <div class="search-result-text">${escapeHtml(msg.text)}</div>`;
+    item.addEventListener('click', () => {
+      const el = document.querySelector(`[data-msg-id="${msg.id}"]`);
+      if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.classList.add('msg-highlight'); setTimeout(() => el.classList.remove('msg-highlight'), 2000); }
+      toggleSearch();
+    });
+    container.appendChild(item);
+  });
+}
+
+function clearSearch() {
+  const input = document.getElementById('search-input');
+  const container = document.getElementById('search-results');
+  if (input) input.value = '';
+  if (container) container.innerHTML = '';
+}
+
+document.getElementById('search-input')?.addEventListener('keydown', e => {
+  if (e.key === 'Enter') doSearch();
+  if (e.key === 'Escape') toggleSearch();
+});
+
+// ══════════════════════════════════════════
+// ─── PINNED MESSAGES ───
+// ══════════════════════════════════════════
+let pinnedVisible = false;
+
+window.togglePinned = async function() {
+  pinnedVisible = !pinnedVisible;
+  const panel = document.getElementById('pinned-panel');
+  if (!panel) return;
+  panel.classList.toggle('hidden', !pinnedVisible);
+  if (pinnedVisible) {
+    try {
+      const res  = await fetch(`/api/rooms/${currentRoomId}/pinned`);
+      const data = await res.json();
+      renderPinnedMessages(data.messages || []);
+    } catch { renderPinnedMessages([]); }
+  }
+};
+
+function renderPinnedMessages(msgs) {
+  const list = document.getElementById('pinned-list');
+  if (!list) return;
+  list.innerHTML = msgs.length ? '' : '<div class="search-empty">لا توجد رسائل مثبتة</div>';
+  msgs.forEach(msg => {
+    const item = document.createElement('div');
+    item.className = 'pinned-msg-item';
+    item.innerHTML = `
+      <div class="pinned-msg-icon">📌</div>
+      <div class="pinned-msg-body">
+        <div class="pinned-msg-user">${escapeHtml(msg.username)} <span class="search-result-time">${formatTime(msg.timestamp)}</span></div>
+        <div class="pinned-msg-text">${escapeHtml(msg.type === 'text' ? msg.text : (msg.type === 'image' ? '[صورة]' : '[ملف]'))}</div>
+      </div>`;
+    item.addEventListener('click', () => {
+      const el = document.querySelector(`[data-msg-id="${msg.id}"]`);
+      if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.classList.add('msg-highlight'); setTimeout(() => el.classList.remove('msg-highlight'), 2000); }
+      togglePinned();
+    });
+    list.appendChild(item);
+  });
+}
+
+// Handle pin socket event
+socket?.on && window.addEventListener('socket_ready', () => {});
+
+// Add pin_message to context menu action
+window.pinMsg = function(msgId) {
+  socket?.emit('pin_message', { msgId, roomId: currentRoomId }, (res) => {
+    if (res?.error) showToast({ type:'message', from:'النظام', roomName:'', text: res.error, timestamp: new Date().toISOString() });
+  });
+};
+
+// Listen for pin updates
+if (typeof socket !== 'undefined' && socket) {
+  socket.on('message_pinned', ({ msgId, pinned, pinnedBy }) => {
+    const el = document.querySelector(`[data-msg-id="${msgId}"]`);
+    if (!el) return;
+    let badge = el.querySelector('.pin-badge');
+    if (pinned) {
+      if (!badge) {
+        badge = document.createElement('div');
+        badge.className = 'pin-badge';
+        badge.innerHTML = `📌 ثبّتها ${escapeHtml(pinnedBy)}`;
+        el.insertBefore(badge, el.firstChild);
+      }
+    } else {
+      badge?.remove();
+    }
+    addSystemMessage(pinned ? `📌 ${pinnedBy} ثبّت رسالة` : `❌ ${pinnedBy} ألغى تثبيت رسالة`);
+  });
+}
+
+// ══════════════════════════════════════════
+// ─── DND — Do Not Disturb ───
+// ══════════════════════════════════════════
+let dndEnabled = false;
+
+window.toggleDND = function() {
+  dndEnabled = !dndEnabled;
+  socket?.emit('toggle_dnd', { enabled: dndEnabled }, (res) => {
+    if (res?.ok) {
+      const btn = document.getElementById('dnd-btn');
+      if (btn) {
+        btn.classList.toggle('dnd-active', dndEnabled);
+        btn.title = dndEnabled ? 'وضع عدم الإزعاج: مفعّل' : 'وضع عدم الإزعاج: معطّل';
+        btn.textContent = dndEnabled ? '🔕' : '🔔';
+      }
+      addSystemMessage(dndEnabled ? '🔕 وضع عدم الإزعاج مفعّل' : '🔔 وضع عدم الإزعاج معطّل');
+    }
+  });
+};
+
+// Override playNotificationSound to respect DND
+const _origPlaySound = playNotificationSound;
+window.playNotificationSoundSafe = function() {
+  if (!dndEnabled) _origPlaySound();
+};
+
+// ══════════════════════════════════════════
+// ─── EXPORT CHAT ───
+// ══════════════════════════════════════════
+window.exportChat = function() {
+  const a = document.createElement('a');
+  a.href = `/api/rooms/${currentRoomId}/export`;
+  a.download = `wasl-${currentRoomName}-${Date.now()}.txt`;
+  a.click();
+};
+
+// ══════════════════════════════════════════
+// ─── KEYBOARD SHORTCUTS ───
+// ══════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  // Ctrl+F → Search
+  if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+    e.preventDefault();
+    toggleSearch();
+    return;
+  }
+  // Ctrl+P → Pinned messages
+  if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+    e.preventDefault();
+    togglePinned();
+    return;
+  }
+  // Escape → close all panels
+  if (e.key === 'Escape') {
+    const search = document.getElementById('search-bar');
+    const pinned = document.getElementById('pinned-panel');
+    if (search && !search.classList.contains('hidden')) { searchVisible = false; search.classList.add('hidden'); clearSearch(); }
+    if (pinned && !pinned.classList.contains('hidden')) { pinnedVisible = false; pinned.classList.add('hidden'); }
+  }
+});
+
+// ══════════════════════════════════════════
+// ─── SHARE ROOM LINK ───
+// ══════════════════════════════════════════
+window.shareRoom = function() {
+  const url = `${location.origin}/index.html#join=${currentRoomId}`;
+  if (navigator.share) {
+    navigator.share({ title: `غرفة: ${currentRoomName}`, text: 'انضم إلى محادثتنا في وَصْل', url });
+  } else {
+    navigator.clipboard.writeText(url).then(() => {
+      addSystemMessage('✅ تم نسخ رابط الغرفة');
+    });
+  }
+};
+

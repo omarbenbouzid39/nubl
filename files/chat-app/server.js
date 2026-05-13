@@ -6,6 +6,7 @@ const multer    = require('multer');
 const path      = require('path');
 const fs        = require('fs');
 const mongoose  = require('mongoose');
+const bcrypt    = require('bcryptjs');
 
 const app    = express();
 const server = http.createServer(app);
@@ -15,6 +16,35 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 if (!fs.existsSync('./uploads')) fs.mkdirSync('./uploads');
+
+// ══════════════════════════════════════════
+// ─── Rate Limiting (simple in-memory) ───
+// ══════════════════════════════════════════
+const rateLimitMap = new Map();
+
+function rateLimit(windowMs, maxRequests) {
+  return (req, res, next) => {
+    const key  = req.ip + ':' + req.path;
+    const now  = Date.now();
+    const data = rateLimitMap.get(key) || { count: 0, start: now };
+    if (now - data.start > windowMs) { data.count = 0; data.start = now; }
+    data.count++;
+    rateLimitMap.set(key, data);
+    if (data.count > maxRequests) {
+      return res.status(429).json({ error: 'محاولات كثيرة — انتظر قليلاً وحاول مجدداً' });
+    }
+    next();
+  };
+}
+
+// ── Admin auth middleware ──
+const ADMIN_SECRET = process.env.ADMIN_SECRET || 'wasl-admin-2025';
+
+function requireAdminKey(req, res, next) {
+  const key = req.headers['x-admin-key'] || req.query.key;
+  if (key !== ADMIN_SECRET) return res.status(401).json({ error: 'غير مصرح — مفتاح الأدمن مطلوب' });
+  next();
+}
 
 // ══════════════════════════════════════════
 // ─── MongoDB Connection ───
@@ -39,6 +69,8 @@ const UserSchema = new mongoose.Schema({
   avatar:    { type: String, default: '', maxlength: 500 },
   bio:       { type: String, default: '', maxlength: 200 },
   myRooms:   [{ type: String }],
+  dnd:       { type: Boolean, default: false },        // Do Not Disturb
+  lastSeen:  { type: Date, default: null },
   createdAt: { type: Date, default: Date.now }
 }, { versionKey: false });
 
@@ -78,6 +110,8 @@ const MessageSchema = new mongoose.Schema({
   replyTo:   { type: mongoose.Schema.Types.Mixed, default: null },
   reactions: { type: mongoose.Schema.Types.Mixed, default: {} },
   deleted:   { type: Boolean, default: false },
+  pinned:    { type: Boolean, default: false },
+  pinnedBy:  { type: String, default: '' },
   timestamp: { type: Date, default: Date.now }
 }, { versionKey: false });
 
@@ -154,29 +188,49 @@ app.post('/upload', upload.single('file'), (req, res) => {
 // ══════════════════════════════════════════
 
 // Register
-app.post('/api/register', async (req, res) => {
+app.post('/api/register', rateLimit(15 * 60 * 1000, 5), async (req, res) => {
   try {
     const { username, password } = req.body;
     if (!username || !password) return res.status(400).json({ error: 'بيانات ناقصة' });
     if (username.length < 2 || username.length > 20) return res.status(400).json({ error: 'الاسم بين 2 و 20 حرف' });
     if (password.length < 4) return res.status(400).json({ error: 'كلمة المرور 4 أحرف على الأقل' });
+    if (!/^[a-zA-Z0-9_\u0600-\u06FF]+$/.test(username)) return res.status(400).json({ error: 'الاسم يحتوي على رموز غير مسموحة' });
 
     const exists = await UserModel.findOne({ username });
     if (exists) return res.status(400).json({ error: 'الاسم مستخدم بالفعل' });
 
-    await UserModel.create({ username, password });
+    const hashed = await bcrypt.hash(password, 10);
+    await UserModel.create({ username, password: hashed });
     console.log(`✅ Registered: ${username}`);
     res.json({ ok: true, username });
   } catch(e) { res.status(500).json({ error: 'خطأ في السيرفر' }); }
 });
 
 // Login
-app.post('/api/login', async (req, res) => {
+app.post('/api/login', rateLimit(15 * 60 * 1000, 10), async (req, res) => {
   try {
     const { username, password } = req.body;
     const user = await UserModel.findOne({ username });
-    if (!user || user.password !== password)
-      return res.status(401).json({ error: 'اسم المستخدم أو كلمة المرور خاطئة' });
+    if (!user) return res.status(401).json({ error: 'اسم المستخدم أو كلمة المرور خاطئة' });
+
+    // Support both bcrypt and plain (migration period)
+    let valid = false;
+    if (user.password.startsWith('$2')) {
+      valid = await bcrypt.compare(password, user.password);
+    } else {
+      valid = user.password === password;
+      // Migrate to bcrypt on first login
+      if (valid) {
+        user.password = await bcrypt.hash(password, 10);
+        await user.save();
+      }
+    }
+    if (!valid) return res.status(401).json({ error: 'اسم المستخدم أو كلمة المرور خاطئة' });
+
+    // Update last seen
+    user.lastSeen = new Date();
+    await user.save();
+
     res.json({
       ok: true, username,
       myRooms:  user.myRooms || [],
@@ -193,7 +247,79 @@ app.get('/api/profile/:username', async (req, res) => {
   try {
     const user = await UserModel.findOne({ username: req.params.username }, '-password');
     if (!user) return res.status(404).json({ error: 'المستخدم غير موجود' });
-    res.json({ username: user.username, verified: user.verified, avatar: user.avatar, bio: user.bio, isAdmin: !!user.isAdmin });
+    const msgCount = await MessageModel.countDocuments({ username: req.params.username });
+    res.json({
+      username:  user.username,
+      verified:  user.verified,
+      avatar:    user.avatar,
+      bio:       user.bio,
+      isAdmin:   !!user.isAdmin,
+      joinedAt:  user.createdAt,
+      lastSeen:  user.lastSeen,
+      msgCount
+    });
+  } catch(e) { res.status(500).json({ error: 'خطأ في السيرفر' }); }
+});
+
+// Change password
+app.post('/api/change-password', rateLimit(60 * 60 * 1000, 5), async (req, res) => {
+  try {
+    const { username, oldPassword, newPassword } = req.body;
+    if (!username || !oldPassword || !newPassword) return res.status(400).json({ error: 'بيانات ناقصة' });
+    if (newPassword.length < 4) return res.status(400).json({ error: 'كلمة المرور الجديدة قصيرة جداً' });
+    const user = await UserModel.findOne({ username });
+    if (!user) return res.status(404).json({ error: 'المستخدم غير موجود' });
+    const valid = user.password.startsWith('$2')
+      ? await bcrypt.compare(oldPassword, user.password)
+      : user.password === oldPassword;
+    if (!valid) return res.status(401).json({ error: 'كلمة المرور الحالية غير صحيحة' });
+    user.password = await bcrypt.hash(newPassword, 10);
+    await user.save();
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: 'خطأ في السيرفر' }); }
+});
+
+// ── Search messages in a room ──
+app.get('/api/rooms/:roomId/search', async (req, res) => {
+  try {
+    const { q } = req.query;
+    if (!q || q.trim().length < 2) return res.status(400).json({ error: 'الكلمة قصيرة جداً' });
+    const results = await MessageModel.find({
+      roomId:  req.params.roomId,
+      type:    'text',
+      deleted: { $ne: true },
+      text:    { $regex: q.trim(), $options: 'i' }
+    }).sort({ timestamp: -1 }).limit(30).lean();
+    res.json({ results });
+  } catch(e) { res.status(500).json({ error: 'خطأ في السيرفر' }); }
+});
+
+// ── Get pinned messages ──
+app.get('/api/rooms/:roomId/pinned', async (req, res) => {
+  try {
+    const msgs = await MessageModel.find({ roomId: req.params.roomId, pinned: true }).sort({ timestamp: -1 }).lean();
+    res.json({ messages: msgs });
+  } catch(e) { res.status(500).json({ error: 'خطأ في السيرفر' }); }
+});
+
+// ── Export chat (text format) ──
+app.get('/api/rooms/:roomId/export', async (req, res) => {
+  try {
+    const room = rooms[req.params.roomId];
+    const msgs = await MessageModel.find({ roomId: req.params.roomId, deleted: { $ne: true } }).sort({ timestamp: 1 }).lean();
+    const roomName = room?.name || req.params.roomId;
+    let txt = `محادثة غرفة: ${roomName}\n`;
+    txt += `تاريخ التصدير: ${new Date().toLocaleString('ar-EG')}\n`;
+    txt += '═'.repeat(40) + '\n\n';
+    msgs.forEach(m => {
+      const time = new Date(m.timestamp).toLocaleString('ar-EG');
+      if (m.type === 'text')  txt += `[${time}] ${m.username}: ${m.text}\n`;
+      if (m.type === 'image') txt += `[${time}] ${m.username}: [صورة]\n`;
+      if (m.type === 'file')  txt += `[${time}] ${m.username}: [ملف: ${m.fileName}]\n`;
+    });
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="wasl-${roomName}-${Date.now()}.txt"`);
+    res.send(txt);
   } catch(e) { res.status(500).json({ error: 'خطأ في السيرفر' }); }
 });
 
@@ -241,7 +367,7 @@ app.get('/api/rooms', (req, res) => {
 });
 
 // ─── Admin API ───
-app.get('/api/admin/stats', async (req, res) => {
+app.get('/api/admin/stats', requireAdminKey, async (req, res) => {
   try {
     const roomList = await Promise.all(
       Object.values(rooms).map(async r => {
@@ -271,7 +397,7 @@ app.get('/api/admin/stats', async (req, res) => {
 });
 
 // Admin: Verify / Unverify
-app.post('/api/admin/verify', async (req, res) => {
+app.post('/api/admin/verify', requireAdminKey, async (req, res) => {
   try {
     const { adminUsername, targetUsername, action } = req.body;
     const admin = await UserModel.findOne({ username: adminUsername });
@@ -288,7 +414,7 @@ app.post('/api/admin/verify', async (req, res) => {
 });
 
 // Admin: Delete room
-app.delete('/api/admin/rooms/:roomId', async (req, res) => {
+app.delete('/api/admin/rooms/:roomId', requireAdminKey, async (req, res) => {
   try {
     const { roomId } = req.params;
     if (!rooms[roomId]) return res.status(404).json({ error: 'الغرفة غير موجودة' });
@@ -526,6 +652,34 @@ io.on('connection', socket => {
       await msg.save();
       io.to(roomId).emit('reaction_update', { msgId, reactions: msg.reactions });
     } catch(_) {}
+  });
+
+  // ─── Pin / Unpin Message ───
+  socket.on('pin_message', async ({ msgId, roomId: rid }, cb) => {
+    const roomId = rid || activeSockets[socket.id]?.roomId;
+    const room   = rooms[roomId];
+    if (!room) return cb?.({ error: 'الغرفة غير موجودة' });
+    try {
+      const user = await UserModel.findOne({ username: socket.username });
+      const isOwner = room.owner === socket.username;
+      if (!isOwner && !user?.isAdmin) return cb?.({ error: 'فقط مالك الغرفة يمكنه تثبيت الرسائل' });
+      const msg = await MessageModel.findOne({ id: msgId });
+      if (!msg) return cb?.({ error: 'الرسالة غير موجودة' });
+      msg.pinned   = !msg.pinned;
+      msg.pinnedBy = msg.pinned ? socket.username : '';
+      await msg.save();
+      io.to(roomId).emit('message_pinned', { msgId, pinned: msg.pinned, pinnedBy: msg.pinnedBy });
+      cb?.({ ok: true, pinned: msg.pinned });
+    } catch(e) { cb?.({ error: 'خطأ في السيرفر' }); }
+  });
+
+  // ─── Toggle DND ───
+  socket.on('toggle_dnd', async ({ enabled }, cb) => {
+    try {
+      await UserModel.updateOne({ username: socket.username }, { dnd: !!enabled });
+      socket.emit('dnd_updated', { enabled: !!enabled });
+      cb?.({ ok: true, dnd: !!enabled });
+    } catch(e) { cb?.({ error: 'خطأ في السيرفر' }); }
   });
 
   // ─── Typing ───

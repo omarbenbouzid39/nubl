@@ -1,10 +1,27 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
+  <script>
+    // Prevent Flash of Wrong Theme
+    (function(){
+      var t = localStorage.getItem('wasl_theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', t);
+      document.documentElement.style.colorScheme = t;
+      if (t === 'light') {
+        document.documentElement.classList.add('light-pre');
+      }
+    })();
+  </script>
+  <style>
+    /* Applied immediately before CSS loads */
+    html:not(.light-pre) body { background: #0d0f14; color: #f1f5f9; }
+    html.light-pre body { background: #f8fafc; color: #0f172a; }
+  </style>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="الملف الشخصي — وَصْل" />
   <title>الملف الشخصي — وَصْل</title>
+    <link rel="manifest" href="/manifest.json" />
   <link rel="icon" href="/logo.png" type="image/png" />
   <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="shared-pages.css" />
@@ -314,19 +331,45 @@
       <div class="profile-stats">
         <div class="profile-stat">
           <div class="profile-stat-num" id="p-stat-rooms">—</div>
-          <div class="profile-stat-lbl">غرفة مرتبطة</div>
+          <div class="profile-stat-lbl">رسالة أُرسلت</div>
         </div>
         <div class="profile-stat">
-          <div class="profile-stat-num" id="p-stat-status">●</div>
-          <div class="profile-stat-lbl">الحالة</div>
+          <div class="profile-stat-num" id="p-stat-status">—</div>
+          <div class="profile-stat-lbl">تاريخ الانضمام</div>
         </div>
         <div class="profile-stat">
           <div class="profile-stat-num">وَصْل</div>
           <div class="profile-stat-lbl">المنصة</div>
         </div>
       </div>
+      <div id="p-last-seen" style="font-size:12px;color:var(--text-muted);margin-top:8px;text-align:center"></div>
 
       <div class="profile-actions" id="p-actions"></div>
+    </div>
+
+    <!-- Change Password Panel -->
+    <div class="edit-panel" id="pwd-panel" style="display:none">
+      <div class="edit-title">🔑 تغيير كلمة المرور</div>
+      <div class="edit-form">
+        <div>
+          <label class="edit-label">كلمة المرور الحالية</label>
+          <input type="password" class="edit-input" id="pwd-old" placeholder="كلمة المرور الحالية..." />
+        </div>
+        <div>
+          <label class="edit-label">كلمة المرور الجديدة</label>
+          <input type="password" class="edit-input" id="pwd-new" placeholder="4 أحرف على الأقل..." />
+        </div>
+        <div>
+          <label class="edit-label">تأكيد كلمة المرور الجديدة</label>
+          <input type="password" class="edit-input" id="pwd-confirm" placeholder="أعد كتابة كلمة المرور..." />
+        </div>
+        <div id="pwd-error" class="save-success" style="background:#ef444415;border-color:#ef444430;color:#ef4444;display:none"></div>
+        <div id="pwd-success" class="save-success"></div>
+        <div style="display:flex;gap:10px">
+          <button class="btn-edit" onclick="submitChangePwd()">💾 تغيير كلمة المرور</button>
+          <button onclick="toggleChangePwd()" style="background:var(--bg-hover);border:1.5px solid var(--border);border-radius:10px;color:var(--text-secondary);cursor:pointer;font-family:var(--font);font-size:14px;padding:10px 20px">إلغاء</button>
+        </div>
+      </div>
     </div>
 
     <!-- Edit Panel -->
@@ -417,9 +460,25 @@ function renderProfile(data) {
   bioEl.textContent = data.bio || 'لا توجد نبذة بعد...';
   bioEl.style.color = data.bio ? 'var(--text-secondary)' : 'var(--text-muted)';
 
-  // Stats
-  document.getElementById('p-stat-rooms').textContent = '🏠';
-  document.getElementById('p-stat-status').textContent = '🟢';
+  // Stats — real data from API
+  const statRooms  = document.getElementById('p-stat-rooms');
+  const statStatus = document.getElementById('p-stat-status');
+  if (statRooms)  statRooms.textContent  = data.msgCount != null ? data.msgCount.toLocaleString('ar-EG') : '—';
+  if (statStatus) statStatus.textContent = data.joinedAt
+    ? new Date(data.joinedAt).toLocaleDateString('ar-EG', { month:'short', year:'numeric' })
+    : '—';
+
+  // Update stat labels
+  const statLabels = document.querySelectorAll('.profile-stat-lbl');
+  if (statLabels[0]) statLabels[0].textContent = 'رسالة أُرسلت';
+  if (statLabels[1]) statLabels[1].textContent = 'تاريخ الانضمام';
+
+  // Last seen
+  if (data.lastSeen) {
+    const ls = new Date(data.lastSeen).toLocaleString('ar-EG',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+    const lsEl = document.getElementById('p-last-seen');
+    if (lsEl) lsEl.textContent = 'آخر ظهور: ' + ls;
+  }
 
   // Actions
   const actions = document.getElementById('p-actions');
@@ -427,8 +486,8 @@ function renderProfile(data) {
   if (isMyProfile) {
     actions.innerHTML = `
       <button class="btn-edit" onclick="toggleEdit(true)">✏️ تعديل الملف</button>
-      <a href="/index.html" class="btn-chat">💬 الدردشة</a>`;
-    // Pre-fill edit form
+      <a href="/index.html" class="btn-chat">💬 الدردشة</a>
+      <button onclick="toggleChangePwd()" style="background:var(--bg-hover);border:1.5px solid var(--border);border-radius:10px;color:var(--text-primary);cursor:pointer;font-family:var(--font);font-size:13px;padding:9px 16px;transition:all .2s;width:100%;margin-top:6px">🔑 تغيير كلمة المرور</button>`;
     document.getElementById('edit-avatar-url').value = data.avatar || '';
     document.getElementById('edit-bio').value         = data.bio    || '';
     updateBioCount();
@@ -507,12 +566,77 @@ async function saveProfile() {
   } catch { alert('خطأ في الاتصال'); }
 }
 
+
+function toggleChangePwd() {
+  const panel = document.getElementById('pwd-panel');
+  const isOpen = panel.style.display !== 'none';
+  panel.style.display = isOpen ? 'none' : 'block';
+  if (!isOpen) {
+    document.getElementById('pwd-old').value     = '';
+    document.getElementById('pwd-new').value     = '';
+    document.getElementById('pwd-confirm').value = '';
+    document.getElementById('pwd-error').style.display   = 'none';
+    document.getElementById('pwd-success').style.display = 'none';
+    panel.scrollIntoView({ behavior:'smooth', block:'nearest' });
+  }
+}
+
+async function submitChangePwd() {
+  const oldPwd  = document.getElementById('pwd-old').value;
+  const newPwd  = document.getElementById('pwd-new').value;
+  const confirm = document.getElementById('pwd-confirm').value;
+  const errEl   = document.getElementById('pwd-error');
+  const succEl  = document.getElementById('pwd-success');
+
+  errEl.style.display  = 'none';
+  succEl.style.display = 'none';
+
+  if (!oldPwd || !newPwd || !confirm) { errEl.textContent='أدخل جميع الحقول'; errEl.style.display='block'; return; }
+  if (newPwd.length < 4)             { errEl.textContent='كلمة المرور الجديدة قصيرة جداً'; errEl.style.display='block'; return; }
+  if (newPwd !== confirm)            { errEl.textContent='كلمة المرور الجديدة غير متطابقة'; errEl.style.display='block'; return; }
+
+  try {
+    const res  = await fetch('/api/change-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: WASL_USER.username, oldPassword: oldPwd, newPassword: newPwd })
+    });
+    const data = await res.json();
+    if (!res.ok) { errEl.textContent = data.error || 'فشل التغيير'; errEl.style.display='block'; return; }
+    succEl.textContent  = '✅ تم تغيير كلمة المرور بنجاح!';
+    succEl.style.display = 'block';
+    document.getElementById('pwd-old').value     = '';
+    document.getElementById('pwd-new').value     = '';
+    document.getElementById('pwd-confirm').value = '';
+    setTimeout(() => toggleChangePwd(), 2500);
+  } catch { errEl.textContent='خطأ في الاتصال بالسيرفر'; errEl.style.display='block'; }
+}
+
 function esc(str) {
   if (!str) return '';
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 loadProfile();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(r => console.log('[PWA] SW:', r.scope))
+      .catch(e => console.warn('[PWA] SW failed:', e));
+  });
+}
+window.addEventListener('offline', () => {
+  const bar = document.createElement('div');
+  bar.id = 'offline-bar';
+  bar.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#ef4444;color:#fff;text-align:center;padding:8px;font-family:Tajawal,sans-serif;font-size:13px;font-weight:600;z-index:9999;direction:rtl';
+  bar.textContent = '📡 لا يوجد اتصال بالإنترنت';
+  document.body.prepend(bar);
+});
+window.addEventListener('online', () => {
+  document.getElementById('offline-bar')?.remove();
+});
 </script>
 </body>
 </html>
